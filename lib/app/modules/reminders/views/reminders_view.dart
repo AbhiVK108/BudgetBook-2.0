@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -15,7 +16,7 @@ class RemindersView extends GetView<RemindersController> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: FocusScope.of(context).unfocus,
+      onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: scaffoldColor,
         appBar: _buildAppBar(),
@@ -30,7 +31,7 @@ class RemindersView extends GetView<RemindersController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                /// Transaction date label
+                // Transaction date label
                 Text(
                   'Transaction Date',
                   style: TextStyle(
@@ -43,14 +44,12 @@ class RemindersView extends GetView<RemindersController> {
 
                 SizedBox(height: 5.h),
 
-                /// Date picker field
-                Obx(
-                  () => _buildDateField(context),
-                ),
+                // Date picker field
+                Obx(() => _buildDateField(context)),
 
                 SizedBox(height: 10.h),
 
-                /// Description label
+                // Description label
                 Text(
                   'Description',
                   style: TextStyle(
@@ -63,17 +62,17 @@ class RemindersView extends GetView<RemindersController> {
 
                 SizedBox(height: 5.h),
 
-                /// Description input
+                // Description input
                 _buildDescriptionField(),
 
                 SizedBox(height: 27.h),
 
-                /// Save button
+                // Save button with loading indicator
                 _buildSaveButton(),
 
                 SizedBox(height: 11.h),
 
-                /// Bottom helper text
+                // Bottom helper text
                 Center(
                   child: Text(
                     'Entry will be reflected in your monthly\nwealth report.',
@@ -95,6 +94,8 @@ class RemindersView extends GetView<RemindersController> {
       ),
     );
   }
+
+  // ================= APP BAR =================
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -139,6 +140,8 @@ class RemindersView extends GetView<RemindersController> {
     );
   }
 
+  // ================= DATE FIELD =================
+
   Widget _buildDateField(BuildContext context) {
     return Material(
       color: Colors.transparent,
@@ -179,12 +182,19 @@ class RemindersView extends GetView<RemindersController> {
                   ),
                 ),
               ),
+              Icon(
+                Icons.keyboard_arrow_down,
+                size: 20.sp,
+                color: const Color(0xFF71817F),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+
+  // ================= DESCRIPTION FIELD =================
 
   Widget _buildDescriptionField() {
     return Container(
@@ -234,43 +244,63 @@ class RemindersView extends GetView<RemindersController> {
     );
   }
 
+  // ================= SAVE BUTTON =================
+
   Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 47.h,
-      child: ElevatedButton(
-        onPressed: controller.saveEntry,
-        style: ElevatedButton.styleFrom(
-          elevation: 1,
-          shadowColor: primaryColor.withValues(alpha: 0.25),
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Save Entry',
-              style: TextStyle(
-                fontFamily: fontFamily,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+    return Obx(
+      () {
+        final loading = controller.isLoading.value;
+
+        return SizedBox(
+          width: double.infinity,
+          height: 47.h,
+          child: ElevatedButton(
+            onPressed: loading ? null : controller.saveEntry,
+            style: ElevatedButton.styleFrom(
+              elevation: 1,
+              shadowColor: primaryColor.withValues(alpha: 0.25),
+              backgroundColor: primaryColor,
+              disabledBackgroundColor:
+                  primaryColor.withValues(alpha: 0.6),
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
               ),
             ),
-            SizedBox(width: 5.w),
-            Icon(
-              Icons.check_circle_outline,
-              color: Colors.white,
-              size: 16.sp,
-            ),
-          ],
-        ),
-      ),
+            child: loading
+                ? SizedBox(
+                    height: 21.h,
+                    width: 21.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Save Entry',
+                        style: TextStyle(
+                          fontFamily: fontFamily,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(width: 5.w),
+                      Icon(
+                        Icons.check_circle_outline,
+                        color: Colors.white,
+                        size: 16.sp,
+                      ),
+                    ],
+                  ),
+          ),
+        );
+      },
     );
   }
 }
+

@@ -1,6 +1,5 @@
 import 'package:budget_book_2026/app/core/theme/app_colors.dart';
 import 'package:budget_book_2026/app/modules/income_expense/controllers/indiv_post_income_controller.dart';
-import 'package:budget_book_2026/app/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -13,7 +12,6 @@ class IndivPostIncomeView extends GetView<IndivPostIncomeController> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4FAFD),
 
-      /// ================= APP BAR =================
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F8F7F),
         elevation: 0,
@@ -38,13 +36,13 @@ class IndivPostIncomeView extends GetView<IndivPostIncomeController> {
         ],
       ),
 
-      /// ================= BODY =================
+  
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// ===== CATEGORY HEADER =====
+
             Row(
               children: [
                 CircleAvatar(
@@ -85,7 +83,6 @@ class IndivPostIncomeView extends GetView<IndivPostIncomeController> {
 
             SizedBox(height: 24.h),
 
-            /// ===== DATE =====
             Text(
               "Transaction Date",
               style: TextStyle(
@@ -116,23 +113,22 @@ class IndivPostIncomeView extends GetView<IndivPostIncomeController> {
                     const Icon(Icons.calendar_today, size: 18),
 
                     SizedBox(width: 8.w),
-                    Obx(
-                      () => Text(
-                        controller.selectedDate.value,
-                        style: TextStyle(
-                          fontFamily: 'HankenGrotesk',
-                          fontSize: 13.sp,
-                        ),
-                      ),
+                 Obx(
+                    () => Text(
+                    controller.formattedSelectedDate,
+                    style: TextStyle(
+                    fontFamily: 'HankenGrotesk',
+                    fontSize: 13.sp,
                     ),
-                  ],
+                    ),
+                  ),
+                ],
                 ),
               ),
             ),
 
             SizedBox(height: 18.h),
 
-            /// ===== AMOUNT =====
             Text(
               "Amount",
               style: TextStyle(
@@ -188,7 +184,7 @@ class IndivPostIncomeView extends GetView<IndivPostIncomeController> {
 
             SizedBox(height: 18.h),
 
-            /// ===== DESCRIPTION =====
+
             Text(
               "Description",
               style: TextStyle(
@@ -239,7 +235,9 @@ class IndivPostIncomeView extends GetView<IndivPostIncomeController> {
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                 ),
-                onPressed: () {},
+                onPressed: () {
+                  controller.saveIncome();
+                },
                 child: Text(
                   "Save Entry ✓",
                   style: TextStyle(
@@ -251,10 +249,7 @@ class IndivPostIncomeView extends GetView<IndivPostIncomeController> {
                 ),
               ),
             ),
-
             SizedBox(height: 10.h),
-
-            /// ===== FOOTER =====
             Center(
               child: Text(
                 "Entry will be reflected in your monthly\nwealth report.",
@@ -272,3 +267,4 @@ class IndivPostIncomeView extends GetView<IndivPostIncomeController> {
     );
   }
 }
+

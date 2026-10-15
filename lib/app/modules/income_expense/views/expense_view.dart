@@ -1,9 +1,11 @@
+
 import 'package:budget_book_2026/app/core/theme/app_colors.dart';
-import 'package:budget_book_2026/app/modules/income_expense/controllers/expense_controller.dart';
 import 'package:budget_book_2026/app/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+
+import '../controllers/expense_controller.dart';
 
 class ExpenseView extends GetView<ExpenseController> {
   const ExpenseView({super.key});
@@ -12,18 +14,18 @@ class ExpenseView extends GetView<ExpenseController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4FAFD),
-
-      /// ================= APP BAR =================
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F8F7F),
         elevation: 0,
         leading: InkWell(
-          onTap: (){
-            Get.back();
-          },
-          child: const Icon(Icons.arrow_back, color: AppColors.cardBgWhite)),
+          onTap: Get.back,
+          child: const Icon(
+            Icons.arrow_back,
+            color: AppColors.cardBgWhite,
+          ),
+        ),
         title: Text(
-          "Total expansive",
+          'Total expense',
           style: TextStyle(
             fontFamily: 'HankenGrotesk',
             fontSize: 16.sp,
@@ -31,26 +33,48 @@ class ExpenseView extends GetView<ExpenseController> {
             color: AppColors.cardBgWhite,
           ),
         ),
-        actions: const [
-          Icon(Icons.filter_list, color: AppColors.cardBgWhite),
-          SizedBox(width: 12),
-          Icon(Icons.refresh, color: AppColors.cardBgWhite),
-          SizedBox(width: 12),
-          Icon(Icons.more_vert, color: AppColors.cardBgWhite),
-          SizedBox(width: 8),
+        actions: [
+          const Icon(
+            Icons.filter_list,
+            color: AppColors.cardBgWhite,
+          ),
+          SizedBox(width: 8.w),
+          IconButton(
+            onPressed: controller.getExpenses,
+            icon: const Icon(
+              Icons.refresh,
+              color: AppColors.cardBgWhite,
+            ),
+          ),
+          const Icon(
+            Icons.more_vert,
+            color: AppColors.cardBgWhite,
+          ),
+          SizedBox(width: 8.w),
         ],
       ),
 
-      /// ================= FLOAT BUTTON =================
+      // ================= ADD EXPENSE =================
+
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0F8F7F),
-        onPressed: () {
-          Get.toNamed(Routes.PostExpenseView);
+        onPressed: () async {
+          final result = await Get.toNamed(
+            Routes.PostExpenseView,
+          );
+
+          if (result == true) {
+            await controller.getExpenses();
+          }
         },
-        child: const Icon(Icons.add, color: AppColors.cardBgWhite),
+        child: const Icon(
+          Icons.add,
+          color: AppColors.cardBgWhite,
+        ),
       ),
 
-      /// ================= BODY =================
+      // ================= BODY =================
+
       body: Padding(
         padding: EdgeInsets.all(14.w),
         child: Column(
@@ -60,21 +84,93 @@ class ExpenseView extends GetView<ExpenseController> {
             SizedBox(height: 16.h),
             _monthSelector(),
             SizedBox(height: 12.h),
-            _todayHeader(),
-            SizedBox(height: 10.h),
 
-            /// List
-            Expanded(
-              child: ListView(
-                children: const [
-                  ExpenseTile(),
-                  ExpenseTile(),
-                  ExpenseTile(),
-                  ExpenseTile(),
-                  ExpenseTile(),
-                  ExpenseTile(),
+            // ================= TRANSACTION COUNT =================
+
+            Obx(
+              () => Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Expense Transactions',
+                    style: TextStyle(
+                      fontFamily: 'HankenGrotesk',
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${controller.filteredExpenses.length} transactions',
+                    style: TextStyle(
+                      fontFamily: 'HankenGrotesk',
+                      fontSize: 11.sp,
+                      color: Colors.grey,
+                    ),
+                  ),
                 ],
               ),
+            ),
+
+            SizedBox(height: 10.h),
+
+            // ================= EXPENSE LIST =================
+
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading.value &&
+                    controller.expenses.isEmpty) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                final items = controller.filteredExpenses;
+
+                if (items.isEmpty) {
+                  return RefreshIndicator(
+                    onRefresh: controller.getExpenses,
+                    child: ListView(
+                      physics:
+                          const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(
+                          height: 200.h,
+                          child: Center(
+                            child: Text(
+                              'No expense records found',
+                              style: TextStyle(
+                                fontFamily: 'HankenGrotesk',
+                                fontSize: 14.sp,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: controller.getExpenses,
+                  child: ListView.builder(
+                    physics:
+                        const AlwaysScrollableScrollPhysics(),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      return ExpenseTransactionTile(
+                        key: ValueKey(
+                          items[index]['id'] ??
+                              items[index]['expenseId'] ??
+                              index,
+                        ),
+                        expense: items[index],
+                        controller: controller,
+                      );
+                    },
+                  ),
+                );
+              }),
             ),
           ],
         ),
@@ -82,153 +178,202 @@ class ExpenseView extends GetView<ExpenseController> {
     );
   }
 
-  /// ================= BALANCE CARD =================
+  // ================= TOTAL EXPENSE CARD =================
+
   Widget _balanceCard() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          /// Left
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Total Balance",
-                style: TextStyle(
-                  fontFamily: 'HankenGrotesk',
-                  fontSize: 12.sp,
-                  color: Colors.grey,
-                ),
-              ),
-              SizedBox(height: 6.h),
-              Text(
-                "₹63,135",
-                style: TextStyle(
-                  fontFamily: 'HankenGrotesk',
-                  fontSize: 26.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange,
-                ),
-              ),
-              SizedBox(height: 6.h),
-              Text(
-                "↑ 12.5% increase from last month",
-                style: TextStyle(
-                  fontFamily: 'HankenGrotesk',
-                  fontSize: 11.sp,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
+    return Obx(() {
+      final total = controller.filteredTotalExpense;
+      final count = controller.filteredExpenses.length;
 
-          /// Right Icon
-          Container(
-            padding: EdgeInsets.all(10.w),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFFFEDE3),
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 2),
             ),
-            child: const Icon(Icons.trending_up, color: Colors.orange),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total Expense',
+                  style: TextStyle(
+                    fontFamily: 'HankenGrotesk',
+                    fontSize: 12.sp,
+                    color: Colors.grey,
+                  ),
+                ),
+                SizedBox(height: 6.h),
+                Text(
+                  '₹${total.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontFamily: 'HankenGrotesk',
+                    fontSize: 26.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0F8F7F),
+                  ),
+                ),
+                SizedBox(height: 6.h),
+                Text(
+                  '$count expense records',
+                  style: TextStyle(
+                    fontFamily: 'HankenGrotesk',
+                    fontSize: 11.sp,
+                    color: Colors.redAccent,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFFE6F7F5),
+              ),
+              child: const Icon(
+                Icons.trending_down,
+                color: Color(0xFF0F8F7F),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  // ================= MONTH SELECTOR =================
+
+  Widget _monthSelector() {
+    return Obx(() {
+      final month = controller.selectedMonth.value;
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            onPressed: controller.previousMonth,
+            icon: const Icon(Icons.chevron_left),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 14.w,
+              vertical: 8.h,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today,
+                  size: 16,
+                ),
+                SizedBox(width: 6.w),
+                Text(
+                  '${_monthName(month.month)} ${month.year}',
+                  style: TextStyle(
+                    fontFamily: 'HankenGrotesk',
+                    fontSize: 12.sp,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: controller.nextMonth,
+            icon: const Icon(Icons.chevron_right),
           ),
         ],
-      ),
-    );
+      );
+    });
   }
 
-  /// ================= MONTH SELECTOR =================
-  Widget _monthSelector() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(Icons.chevron_left),
-        SizedBox(width: 10.w),
+  String _monthName(int month) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
 
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 16),
-              SizedBox(width: 6.w),
-              Text(
-                "June 2026",
-                style: TextStyle(fontFamily: 'HankenGrotesk', fontSize: 12.sp),
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(width: 10.w),
-        const Icon(Icons.chevron_right),
-      ],
-    );
-  }
-
-  /// ================= TODAY HEADER =================
-  Widget _todayHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          "Today",
-          style: TextStyle(
-            fontFamily: 'HankenGrotesk',
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Text(
-          "4 transactions",
-          style: TextStyle(
-            fontFamily: 'HankenGrotesk',
-            fontSize: 11.sp,
-            color: Colors.grey,
-          ),
-        ),
-      ],
-    );
+    return months[month - 1];
   }
 }
 
-/// ================= EXPENSE TILE =================
-class ExpenseTile extends StatelessWidget {
-  const ExpenseTile({super.key});
+// ======================================================
+// EXPENSE TRANSACTION TILE
+// ======================================================
+
+class ExpenseTransactionTile extends StatelessWidget {
+  final Map<String, dynamic> expense;
+  final ExpenseController controller;
+
+  const ExpenseTransactionTile({
+    super.key,
+    required this.expense,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final id = expense['id'] ??
+        expense['expenseId'] ??
+        expense['expense_id'];
+
+    final amount = double.tryParse(
+          expense['amount']?.toString() ?? '0',
+        ) ??
+        0.0;
+
+    final category = expense['categoryName']?.toString() ??
+        expense['category_name']?.toString() ??
+        expense['category']?.toString() ??
+        'Expense';
+
+    final description =
+        expense['description']?.toString() ?? '';
+
+    final date = expense['expenseDate']?.toString() ??
+        expense['expense_date']?.toString() ??
+        expense['date']?.toString() ??
+        expense['created_at']?.toString() ??
+        '';
+
     return Container(
       margin: EdgeInsets.only(bottom: 10.h),
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14.r),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 5,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
-          /// Icon
           Container(
             padding: EdgeInsets.all(10.w),
             decoration: const BoxDecoration(
@@ -243,13 +388,14 @@ class ExpenseTile extends StatelessWidget {
 
           SizedBox(width: 12.w),
 
-          /// Title
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "S2S",
+                  category,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'HankenGrotesk',
                     fontWeight: FontWeight.w600,
@@ -258,36 +404,102 @@ class ExpenseTile extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  "Beauty",
+                  description.isEmpty ? 'Expense' : description,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'HankenGrotesk',
                     fontSize: 11.sp,
                     color: Colors.grey,
                   ),
                 ),
+                if (date.isNotEmpty) ...[
+                  SizedBox(height: 3.h),
+                  Text(
+                    date,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'HankenGrotesk',
+                      fontSize: 10.sp,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
 
-          /// Amount
+          SizedBox(width: 6.w),
+
           Text(
-            "₹54,635",
+            '₹${amount.toStringAsFixed(2)}',
             style: TextStyle(
               fontFamily: 'HankenGrotesk',
               fontSize: 12.sp,
-              color: Colors.orange,
+              color: Colors.redAccent,
               fontWeight: FontWeight.w600,
             ),
           ),
 
-          SizedBox(width: 10.w),
+          SizedBox(width: 8.w),
 
-          /// Actions
-          const Icon(Icons.edit, size: 18),
-          SizedBox(width: 6),
-          const Icon(Icons.delete, size: 18, color: Colors.red),
+          // ================= EDIT =================
+
+          InkWell(
+            onTap: () async {
+              if (id == null || id.toString().isEmpty) {
+                Get.snackbar(
+                  'Error',
+                  'Expense ID not found',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+                return;
+              }
+
+              final result = await Get.toNamed(
+                Routes.PostExpenseView,
+                arguments: {
+                  ...expense,
+                  'isEdit': true,
+                },
+              );
+
+              if (result == true) {
+                await controller.getExpenses();
+              }
+            },
+            child: const Icon(
+              Icons.edit,
+              size: 18,
+            ),
+          ),
+
+          SizedBox(width: 8.w),
+
+          // ================= DELETE =================
+
+          InkWell(
+            onTap: () {
+              if (id != null && id.toString().isNotEmpty) {
+                controller.confirmDelete(id);
+              } else {
+                Get.snackbar(
+                  'Error',
+                  'Expense ID not found',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              }
+            },
+            child: const Icon(
+              Icons.delete,
+              size: 18,
+              color: Colors.red,
+            ),
+          ),
         ],
       ),
     );
   }
 }
+

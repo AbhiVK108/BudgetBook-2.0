@@ -28,13 +28,22 @@ class CategoriesView extends GetView<CategoriesController> {
             color: AppColors.cardBgWhite,
           ),
         ),
-        actions: const [
-          Icon(Icons.refresh, color: AppColors.cardBgWhite),
-          SizedBox(width: 12),
-          Icon(Icons.more_vert, color: AppColors.cardBgWhite),
-          SizedBox(width: 8),
-        ],
-      ),
+actions: [
+  IconButton(
+    onPressed: controller.refreshCategories,
+    icon: const Icon(
+      Icons.refresh,
+      color: AppColors.cardBgWhite,
+    ),
+  ),
+  const SizedBox(width: 8),
+  const Icon(
+    Icons.more_vert,
+    color: AppColors.cardBgWhite,
+  ),
+  const SizedBox(width: 8),
+],
+),
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0F8F7F),
@@ -54,9 +63,23 @@ class CategoriesView extends GetView<CategoriesController> {
 
             /// ===== Grid =====
             Expanded(
-              child: Obx(
-                () => GridView.builder(
-                  itemCount: _data().length,
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+            
+                final data = controller.filteredCategories;
+            
+                if (data.isEmpty) {
+                  return const Center(
+                    child: Text("No categories found"),
+                  );
+                }
+            
+                return GridView.builder(
+                  itemCount: data.length,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     crossAxisSpacing: 12.w,
@@ -64,14 +87,15 @@ class CategoriesView extends GetView<CategoriesController> {
                     childAspectRatio: 0.95,
                   ),
                   itemBuilder: (_, index) {
-                    final item = _data()[index];
+                    final item = data[index];
+            
                     return CategoryItem(
-                      title: item['title'],
-                      amount: item['amount'],
+                      title: item["title"] ?? "",
+                      amount: item["amount"] ?? "₹ 0",
                     );
                   },
-                ),
-              ),
+                );
+              }),
             ),
           ],
         ),
@@ -232,8 +256,8 @@ class CategoryItem extends GetView<CategoriesController> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: isExpense
-                ? AppColors.expenseRed.withOpacity(0.5)
-                : AppColors.primaryTeal.withOpacity(0.5),
+                ? AppColors.expenseRed.withValues(alpha: 0.5)
+                : AppColors.primaryTeal.withValues(alpha: 0.5),
             border: Border.all(
               color: isExpense ? AppColors.expenseRed : AppColors.primaryTeal,
               width: 1,
@@ -271,3 +295,4 @@ class CategoryItem extends GetView<CategoriesController> {
     );
   }
 }
+

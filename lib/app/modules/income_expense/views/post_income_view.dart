@@ -12,36 +12,59 @@ class PostIncomeView extends GetView<PostIncomeController> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4FAFD),
 
-      /// ================= APP BAR =================
+      // ============================================================
+      // APP BAR
+      // ============================================================
+
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F8F7F),
         elevation: 0,
+
         leading: InkWell(
-           onTap: (){
+          onTap: () {
             Get.back();
           },
-          child: const Icon(Icons.arrow_back, color: AppColors.cardBgWhite,)),
+          child: const Icon(
+            Icons.arrow_back,
+            color: AppColors.cardBgWhite,
+          ),
+        ),
+
         title: Text(
           "Income",
           style: TextStyle(
             fontFamily: 'HankenGrotesk',
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
-             color: AppColors.cardBgWhite,
+            color: AppColors.cardBgWhite,
           ),
         ),
-        actions: const [Icon(Icons.more_vert,
-        color: AppColors.cardBgWhite,
-        ), SizedBox(width: 8)],
+
+        actions: const [
+          Icon(
+            Icons.more_vert,
+            color: AppColors.cardBgWhite,
+          ),
+          SizedBox(width: 8),
+        ],
       ),
 
-      /// ================= BODY =================
+      // ============================================================
+      // BODY
+      // ============================================================
+
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.w),
+
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+
           children: [
-            /// ===== CATEGORY =====
+            // ========================================================
+            // CATEGORY TITLE
+            // ========================================================
+
             Text(
               "Select a Category",
               style: TextStyle(
@@ -53,42 +76,228 @@ class PostIncomeView extends GetView<PostIncomeController> {
 
             SizedBox(height: 12.h),
 
-            SizedBox(
-              height: 70.h,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: 6,
-                itemBuilder: (_, index) {
-                  final isSelected = controller.selectedIndex.value == index;
+            // ========================================================
+            // CATEGORIES
+            // ========================================================
 
-                  return GestureDetector(
-                    onTap: () => controller.selectCategory(index),
-                    child: Container(
-                      margin: EdgeInsets.only(right: 12.w),
-                      padding: EdgeInsets.all(3.w),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: isSelected
-                            ? Border.all(
-                                color: const Color(0xFF0F8F7F),
-                                width: 2,
-                              )
-                            : null,
-                      ),
-                      child: CircleAvatar(
-                        radius: 26.r,
-                        backgroundColor: const Color(0xFF9FC7C3),
-                        backgroundImage: AssetImage('assets/images/beauty.jpg'),
-                      ),
+            Obx(() {
+              if (controller
+                  .isLoadingCategories.value) {
+                return SizedBox(
+                  height: 110.h,
+                  child: const Center(
+                    child:
+                        CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              if (controller.categories.isEmpty) {
+                return SizedBox(
+                  height: 110.h,
+                  child: const Center(
+                    child: Text(
+                      "No income categories available",
                     ),
-                  );
-                },
-              ),
-            ),
+                  ),
+                );
+              }
+
+              return SizedBox(
+                height: 125.h,
+
+                child: ListView.builder(
+                  scrollDirection:
+                      Axis.horizontal,
+
+                  itemCount:
+                      controller.categories.length,
+
+                  itemBuilder:
+                      (context, index) {
+                    final category =
+                        controller
+                            .categories[index];
+
+                    final categoryName =
+                        category[
+                                'categoryName']
+                            ?.toString() ??
+                            '';
+
+                    final imagePath =
+                        category[
+                                'categoryImg']
+                            ?.toString() ??
+                            '';
+
+                    return Obx(() {
+                      final isSelected =
+                          controller
+                                  .selectedIndex
+                                  .value ==
+                              index;
+
+                      return GestureDetector(
+                        behavior:
+                            HitTestBehavior.opaque,
+
+                        onTap: () {
+                          controller
+                              .selectCategory(
+                            index,
+                          );
+                        },
+
+                        child: Container(
+                          width: 85.w,
+
+                          margin:
+                              EdgeInsets.only(
+                            right: 12.w,
+                          ),
+
+                          child: Column(
+                            children: [
+                              // ==========================
+                              // CATEGORY IMAGE
+                              // ==========================
+
+                              Container(
+                                padding:
+                                    EdgeInsets.all(
+                                  3.w,
+                                ),
+
+                                decoration:
+                                    BoxDecoration(
+                                  shape:
+                                      BoxShape
+                                          .circle,
+
+                                  border:
+                                      Border.all(
+                                    color: isSelected
+                                        ? const Color(
+                                            0xFF0F8F7F,
+                                          )
+                                        : Colors
+                                            .transparent,
+                                    width: 3,
+                                  ),
+                                ),
+
+                                child:
+                                    CircleAvatar(
+                                  radius: 28.r,
+
+                                  backgroundColor:
+                                      const Color(
+                                    0xFF9FC7C3,
+                                  ),
+
+                                  backgroundImage:
+                                      imagePath
+                                              .isNotEmpty
+                                          ? NetworkImage(
+                                              'https://budgetbook.in/$imagePath',
+                                            )
+                                          : null,
+
+                                  child: imagePath
+                                          .isEmpty
+                                      ? Icon(
+                                          Icons
+                                              .category,
+                                          color:
+                                              Colors
+                                                  .white,
+                                          size:
+                                              24.sp,
+                                        )
+                                      : null,
+                                ),
+                              ),
+
+                              SizedBox(
+                                height: 6.h,
+                              ),
+
+                              // ==========================
+                              // CATEGORY NAME
+                              // ==========================
+
+                              Text(
+                                categoryName,
+
+                                maxLines: 1,
+
+                                overflow:
+                                    TextOverflow
+                                        .ellipsis,
+
+                                textAlign:
+                                    TextAlign
+                                        .center,
+
+                                style:
+                                    TextStyle(
+                                  fontFamily:
+                                      'HankenGrotesk',
+
+                                  fontSize:
+                                      11.sp,
+
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight
+                                              .bold
+                                          : FontWeight
+                                              .normal,
+
+                                  color: isSelected
+                                      ? const Color(
+                                          0xFF0F8F7F,
+                                        )
+                                      : Colors
+                                          .black,
+                                ),
+                              ),
+
+                              SizedBox(
+                                height: 3.h,
+                              ),
+
+                              // ==========================
+                              // CHECK ICON
+                              // ==========================
+
+                              if (isSelected)
+                                Icon(
+                                  Icons
+                                      .check_circle,
+                                  size: 16.sp,
+                                  color:
+                                      const Color(
+                                    0xFF0F8F7F,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    });
+                  },
+                ),
+              );
+            }),
 
             SizedBox(height: 18.h),
 
-            /// ===== DATE =====
+            // ========================================================
+            // DATE
+            // ========================================================
+
             Text(
               "Transaction Date",
               style: TextStyle(
@@ -102,28 +311,49 @@ class PostIncomeView extends GetView<PostIncomeController> {
 
             GestureDetector(
               onTap: controller.pickDate,
+
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
-                decoration: BoxDecoration(
+                padding:
+                    EdgeInsets.symmetric(
+                  horizontal: 12.w,
+                  vertical: 14.h,
+                ),
+
+                decoration:
+                    BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.r),
-                  boxShadow: [
+                  borderRadius:
+                      BorderRadius.circular(
+                    12.r,
+                  ),
+
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black12,
                       blurRadius: 4,
-                      offset: const Offset(0, 2),
+                      offset: Offset(0, 2),
                     ),
                   ],
                 ),
+
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 18),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                    ),
+
                     SizedBox(width: 8.w),
+
                     Obx(
                       () => Text(
-                        controller.selectedDate.value,
+                        controller
+                            .selectedDate
+                            .value,
+
                         style: TextStyle(
-                          fontFamily: 'HankenGrotesk',
+                          fontFamily:
+                              'HankenGrotesk',
                           fontSize: 13.sp,
                         ),
                       ),
@@ -135,7 +365,10 @@ class PostIncomeView extends GetView<PostIncomeController> {
 
             SizedBox(height: 18.h),
 
-            /// ===== AMOUNT =====
+            // ========================================================
+            // AMOUNT
+            // ========================================================
+
             Text(
               "Amount",
               style: TextStyle(
@@ -148,40 +381,73 @@ class PostIncomeView extends GetView<PostIncomeController> {
             SizedBox(height: 6.h),
 
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.0.h),
-              decoration: BoxDecoration(
+              padding:
+                  EdgeInsets.symmetric(
+                horizontal: 12.w,
+                vertical: 8.h,
+              ),
+
+              decoration:
+                  BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
+
+                borderRadius:
+                    BorderRadius.circular(
+                  12.r,
+                ),
+
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
                     blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    offset: Offset(0, 2),
                   ),
                 ],
               ),
+
               child: Row(
                 children: [
                   Text(
                     "₹",
                     style: TextStyle(
-                      fontFamily: 'HankenGrotesk',
+                      fontFamily:
+                          'HankenGrotesk',
                       fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0F8F7F),
+                      fontWeight:
+                          FontWeight.bold,
+                      color:
+                          const Color(
+                        0xFF0F8F7F,
+                      ),
                     ),
                   ),
+
                   SizedBox(width: 8.w),
+
                   Expanded(
                     child: TextField(
-                      controller: controller.amountController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: "Enter amount",
-                        hintStyle: TextStyle(
-                          fontFamily: 'HankenGrotesk',
-                          color: Colors.grey,
+                      controller:
+                          controller
+                              .amountController,
+
+                      keyboardType:
+                          const TextInputType
+                              .numberWithOptions(
+                        decimal: true,
+                      ),
+
+                      decoration:
+                          const InputDecoration(
+                        border:
+                            InputBorder.none,
+                        hintText:
+                            "Enter amount",
+                        hintStyle:
+                            TextStyle(
+                          fontFamily:
+                              'HankenGrotesk',
+                          color:
+                              Colors.grey,
                         ),
                       ),
                     ),
@@ -192,7 +458,10 @@ class PostIncomeView extends GetView<PostIncomeController> {
 
             SizedBox(height: 18.h),
 
-            /// ===== DESCRIPTION =====
+            // ========================================================
+            // DESCRIPTION
+            // ========================================================
+
             Text(
               "Description",
               style: TextStyle(
@@ -205,27 +474,49 @@ class PostIncomeView extends GetView<PostIncomeController> {
             SizedBox(height: 6.h),
 
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
-              decoration: BoxDecoration(
+              padding:
+                  EdgeInsets.symmetric(
+                horizontal: 12.w,
+              ),
+
+              decoration:
+                  BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
+
+                borderRadius:
+                    BorderRadius.circular(
+                  12.r,
+                ),
+
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
                     blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    offset: Offset(0, 2),
                   ),
                 ],
               ),
+
               child: TextField(
-                controller: controller.noteController,
+                controller:
+                    controller.noteController,
+
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: "Add a note (e.g. Q3 Bonus)",
-                  hintStyle: TextStyle(
-                    fontFamily: 'HankenGrotesk',
-                    color: Colors.grey,
+
+                decoration:
+                    const InputDecoration(
+                  border:
+                      InputBorder.none,
+
+                  hintText:
+                      "Add a note (e.g. Q3 Bonus)",
+
+                  hintStyle:
+                      TextStyle(
+                    fontFamily:
+                        'HankenGrotesk',
+                    color:
+                        Colors.grey,
                   ),
                 ),
               ),
@@ -233,39 +524,94 @@ class PostIncomeView extends GetView<PostIncomeController> {
 
             SizedBox(height: 24.h),
 
-            /// ===== BUTTON =====
-            SizedBox(
-              width: double.infinity,
-              height: 48.h,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F8F7F),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
+            // ========================================================
+            // SAVE BUTTON
+            // ========================================================
+
+            Obx(
+              () => SizedBox(
+                width: double.infinity,
+                height: 48.h,
+
+                child:
+                    ElevatedButton(
+                  style:
+                      ElevatedButton.styleFrom(
+                    backgroundColor:
+                        const Color(
+                      0xFF0F8F7F,
+                    ),
+
+                    shape:
+                        RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius
+                              .circular(
+                        12.r,
+                      ),
+                    ),
                   ),
-                ),
-                onPressed: () {},
-                child: Text(
-                  "Save Entry ✓",
-                  style: TextStyle(
-                    fontFamily: 'HankenGrotesk',
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.cardBgWhite,
-                  ),
+
+                  onPressed: controller
+                          .isSavingIncome
+                          .value
+                      ? null
+                      : () {
+                          controller
+                              .saveIncome();
+                        },
+
+                  child:
+                      controller
+                              .isSavingIncome
+                              .value
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child:
+                                  CircularProgressIndicator(
+                                strokeWidth:
+                                    2,
+                                color:
+                                    Colors.white,
+                              ),
+                            )
+                          : Text(
+                              "Save Entry ✓",
+
+                              style:
+                                  TextStyle(
+                                fontFamily:
+                                    'HankenGrotesk',
+                                fontSize:
+                                    14.sp,
+                                fontWeight:
+                                    FontWeight
+                                        .w600,
+                                color: AppColors
+                                    .cardBgWhite,
+                              ),
+                            ),
                 ),
               ),
             ),
 
             SizedBox(height: 10.h),
 
-            /// ===== FOOTER =====
+            // ========================================================
+            // FOOTER
+            // ========================================================
+
             Center(
               child: Text(
                 "Entry will be reflected in your monthly\nwealth report.",
-                textAlign: TextAlign.center,
+
+                textAlign:
+                    TextAlign.center,
+
                 style: TextStyle(
-                  fontFamily: 'HankenGrotesk',
+                  fontFamily:
+                      'HankenGrotesk',
                   fontSize: 11.sp,
                   color: Colors.grey,
                 ),

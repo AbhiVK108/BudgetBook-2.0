@@ -1,3 +1,5 @@
+import 'package:budget_book_2026/app/core/theme/app_colors.dart';
+import 'package:budget_book_2026/app/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -11,6 +13,13 @@ class ChitfundView extends GetView<ChitfundController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4FAFD),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF0F8F7F),
+        onPressed: () {
+          // Get.toNamed(Routes.PostIncomeView);
+        },
+        child: const Icon(Icons.add, color: AppColors.cardBgWhite),
+      ),
       body: Column(
         children: [
           /// 🔥 CUSTOM HEADER
@@ -84,65 +93,68 @@ class ChitfundView extends GetView<ChitfundController> {
               itemBuilder: (_, index) {
                 final isSelected = index == 0;
 
-                return Container(
-                  margin: EdgeInsets.only(bottom: 14.h),
-                  padding: EdgeInsets.all(14.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14.r),
-                    border: isSelected
-                        ? Border.all(color: Colors.blue, width: 2)
-                        : null,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0x331BBCAC),
-                        blurRadius: 6,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      /// AVATAR
-                      CircleAvatar(
-                        radius: 22.r,
-                        backgroundColor: const Color(0xFFD4E6E4),
-                        child: Text(
-                          "S",
-                          style: TextStyle(
-                            color: const Color(0xFF0F8F7D),
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'HankenGrotesk',
-                          ),
+                return GestureDetector(
+                  onTap: () => Get.toNamed(Routes.GET_CHITFUNDS),
+                  child: Container(
+                    margin: EdgeInsets.only(bottom: 14.h),
+                    padding: EdgeInsets.all(14.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: isSelected
+                          ? Border.all(color: Colors.blue, width: 2)
+                          : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0x331BBCAC),
+                          blurRadius: 6,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
-
-                      SizedBox(width: 12.w),
-
-                      /// NAME + AMOUNT
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "shouley",
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        /// AVATAR
+                        CircleAvatar(
+                          radius: 22.r,
+                          backgroundColor: const Color(0xFFD4E6E4),
+                          child: Text(
+                            "S",
                             style: TextStyle(
-                              fontSize: 14.sp,
+                              color: const Color(0xFF0F8F7D),
                               fontWeight: FontWeight.w600,
                               fontFamily: 'HankenGrotesk',
                             ),
                           ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            "Total: ₹54,635",
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.grey[600],
-                              fontFamily: 'HankenGrotesk',
+                        ),
+
+                        SizedBox(width: 12.w),
+
+                        /// NAME + AMOUNT
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "shouley",
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'HankenGrotesk',
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            SizedBox(height: 2.h),
+                            Text(
+                              "Total: ₹54,635",
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.grey[600],
+                                fontFamily: 'HankenGrotesk',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -165,7 +177,7 @@ class ChitfundView extends GetView<ChitfundController> {
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),

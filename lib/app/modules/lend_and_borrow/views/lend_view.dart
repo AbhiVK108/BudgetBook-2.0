@@ -1,3 +1,6 @@
+import 'package:budget_book_2026/app/core/theme/app_colors.dart';
+import 'package:budget_book_2026/app/routes/app_pages.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -10,6 +13,14 @@ class LendView extends GetView<LendController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF0F8F7F),
+        onPressed: () async {
+          await Get.toNamed(Routes.POST_LEND);
+          await controller.fetchLends();
+        },
+        child: const Icon(Icons.add, color: AppColors.cardBgWhite),
+      ),
       backgroundColor: const Color(0xFFF4FAFD),
       body: Column(
         children: [
@@ -49,113 +60,175 @@ class LendView extends GetView<LendController> {
 
           SizedBox(height: 16.h),
 
-          /// 🔥 SUMMARY CARDS
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _summaryCard(
-                    title: "Total",
-                    amount: "₹47,500",
-                    color: const Color(0xFF1FA97A),
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: _summaryCard(
-                    title: "Pay",
-                    amount: "₹0",
-                    color: Colors.red,
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: _summaryCard(
-                    title: "Due",
-                    amount: "₹47,500",
-                    color: const Color(0xFFF2994A),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: 16.h),
-
-          /// 🔥 LIST
           Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              itemCount: 5,
-              itemBuilder: (_, index) {
-                final isSelected = index == 0;
+            child: Obx(() {
+              if (controller.isLoading.value && controller.lends.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-                return Container(
-                  margin: EdgeInsets.only(bottom: 14.h),
-                  padding: EdgeInsets.all(14.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14.r),
-                    border: isSelected
-                        ? Border.all(color: Colors.blue, width: 2)
-                        : null,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0x331BBCAC),
-                        blurRadius: 6,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      /// AVATAR
-                      CircleAvatar(
-                        radius: 22.r,
-                        backgroundColor: const Color(0xFFD4E6E4),
-                        child: Text(
-                          "S",
-                          style: TextStyle(
-                            color: const Color(0xFF0F8F7D),
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'HankenGrotesk',
+              return Column(
+                children: [
+                  SizedBox(height: 16.h),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _summaryCard(
+                            title: "Total",
+                            amount: controller.formatAmount(
+                              controller.totalAmount,
+                            ),
+                            color: const Color(0xFF1FA97A),
                           ),
                         ),
-                      ),
-
-                      SizedBox(width: 12.w),
-
-                      /// NAME + AMOUNT
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "shouley",
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'HankenGrotesk',
+                        SizedBox(width: 10.w),
+                        Expanded(
+                          child: _summaryCard(
+                            title: "Pay",
+                            amount: controller.formatAmount(
+                              controller.paidAmount,
                             ),
+                            color: Colors.red,
                           ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            "Total: ₹54,635",
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.grey[600],
-                              fontFamily: 'HankenGrotesk',
+                        ),
+                        SizedBox(width: 10.w),
+                        Expanded(
+                          child: _summaryCard(
+                            title: "Due",
+                            amount: controller.formatAmount(
+                              controller.dueAmount,
                             ),
+                            color: const Color(0xFFF2994A),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              },
-            ),
+                  SizedBox(height: 16.h),
+                  Expanded(
+                    child: controller.lends.isEmpty
+                        ? _emptyState()
+                        : RefreshIndicator(
+                            onRefresh: controller.fetchLends,
+                            child: ListView.builder(
+                              padding: EdgeInsets.symmetric(horizontal: 16.w),
+                              itemCount: controller.lends.length,
+                              itemBuilder: (_, index) {
+                                final lend = controller.lends[index];
+                                final name = controller.lendName(lend);
+                                final amount =
+                                    double.tryParse(
+                                      lend['amount']?.toString() ?? '',
+                                    ) ??
+                                    0;
+
+                                return GestureDetector(
+                                  onTap: () => Get.toNamed(
+                                    Routes.GET_LEND,
+                                    arguments: lend,
+                                  ),
+                                  child: Container(
+                                    margin: EdgeInsets.only(bottom: 14.h),
+                                    padding: EdgeInsets.all(14.w),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(14.r),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0x331BBCAC),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 22.r,
+                                          backgroundColor: const Color(
+                                            0xFFD4E6E4,
+                                          ),
+                                          child: Text(
+                                            name.isEmpty
+                                                ? '?'
+                                                : name[0].toUpperCase(),
+                                            style: TextStyle(
+                                              color: const Color(0xFF0F8F7D),
+                                              fontWeight: FontWeight.w600,
+                                              fontFamily: 'HankenGrotesk',
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 12.w),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                name,
+                                                style: TextStyle(
+                                                  fontSize: 14.sp,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontFamily: 'HankenGrotesk',
+                                                ),
+                                              ),
+                                              SizedBox(height: 2.h),
+                                              Text(
+                                                'Total: ${controller.formatAmount(amount)}',
+                                                style: TextStyle(
+                                                  fontSize: 12.sp,
+                                                  color: Colors.grey[600],
+                                                  fontFamily: 'HankenGrotesk',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                  ),
+                ],
+              );
+            }),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Obx(
+        () => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              controller.errorMessage.value.isEmpty
+                  ? 'No lending records found.'
+                  : controller.errorMessage.value,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14.sp,
+                fontFamily: 'HankenGrotesk',
+              ),
+            ),
+            if (controller.errorMessage.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              TextButton(
+                onPressed: controller.fetchLends,
+                child: const Text('Retry'),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -173,7 +246,7 @@ class LendView extends GetView<LendController> {
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
