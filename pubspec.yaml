@@ -17,9 +17,19 @@ dependencies:
   get: ^4.7.3
   flutter_screenutil: ^5.9.3
   font_awesome_flutter: ^11.0.0
-  icons_launcher: ^3.1.0
+  icons_launcher: 3.0.3
+  image: 4.5.4
   http: ^1.6.0
   shared_preferences: ^2.5.6
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  flutter_secure_storage: ^11.2.0
+  url_launcher: ^6.3.3
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  share_plus: ^13.3.1
+  path_provider: ^2.1.6
+  file_picker: ^13.3.2
 
 dev_dependencies:
   flutter_test:

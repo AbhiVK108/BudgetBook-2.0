@@ -1,10 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import 'app/routes/app_pages.dart';
+import 'app/core/services/api_services.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (kDebugMode) {
+    final accessToken = await ApiService().getToken();
+    debugPrint('Access token: $accessToken');
+  }
+
   runApp(
     ScreenUtilInit(
       designSize: const Size(375, 812),

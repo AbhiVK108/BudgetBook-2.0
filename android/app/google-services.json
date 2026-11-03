@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "157789893240",
+    "project_id": "budgetbook-2e1ec",
+    "storage_bucket": "budgetbook-2e1ec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:157789893240:android:3e281ebeab29508778738d",
+        "android_client_info": {
+          "package_name": "com.s2s.budgetbook"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqE4V_8IB1MyTD9IkV4Rdr3R2sW_d_mVs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

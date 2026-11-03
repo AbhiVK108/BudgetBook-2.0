@@ -1,17 +1,15 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:budget_book_2026/app/core/constants/api_endpoints.dart';
 import 'package:budget_book_2026/app/core/services/api_services.dart';
 
 class RemindersController extends GetxController {
-  final TextEditingController descriptionController =
-      TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
   final ApiService apiService = ApiService();
 
-  final String url =
-      'https://budgetbook.in/api/api/reminder';
+  final String url = ApiEndpoints.legacyReminderUrl;
 
   final Rx<DateTime> selectedDate = DateTime.now().obs;
 
@@ -22,8 +20,18 @@ class RemindersController extends GetxController {
 
   String get formattedSelectedDate {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
 
     final date = selectedDate.value;
@@ -70,9 +78,9 @@ class RemindersController extends GetxController {
               headerBackgroundColor: Color(0xFF079B8D),
               headerForegroundColor: Colors.white,
             ),
-            textTheme: Theme.of(context).textTheme.apply(
-                  fontFamily: 'HankenGrotesk',
-                ),
+            textTheme: Theme.of(
+              context,
+            ).textTheme.apply(fontFamily: 'HankenGrotesk'),
           ),
           child: child!,
         );
@@ -116,14 +124,11 @@ class RemindersController extends GetxController {
       debugPrint('POST REMINDER DESCRIPTION: $description');
 
       // Use ApiService to include the saved authentication token
-    final response = await apiService.postFormData(
-            url,
-    {
-          'reminderDate': apiDate,
-          'description': description,
-    },
-    );
- 
+      final response = await apiService.postFormData(url, {
+        'reminderDate': apiDate,
+        'description': description,
+      });
+
       debugPrint('REMINDER STATUS: ${response.statusCode}');
       debugPrint('REMINDER BODY: ${response.body}');
       debugPrint('SENT DATE: $apiDate');
@@ -141,42 +146,33 @@ class RemindersController extends GetxController {
       }
 
       final String message =
-          responseData is Map &&
-                  responseData['message'] != null
-              ? responseData['message'].toString()
-              : '';
+          responseData is Map && responseData['message'] != null
+          ? responseData['message'].toString()
+          : '';
 
       // Success
-      if (response.statusCode == 200 ||
-          response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         Get.snackbar(
           'Entry Saved',
-          message.isNotEmpty
-              ? message
-              : 'Reminder saved successfully.',
+          message.isNotEmpty ? message : 'Reminder saved successfully.',
           snackPosition: SnackPosition.BOTTOM,
           margin: const EdgeInsets.all(16),
           backgroundColor: const Color(0xFF079B8D),
           colorText: Colors.white,
           duration: const Duration(seconds: 2),
-          icon: const Icon(
-            Icons.check_circle_outline,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.check_circle_outline, color: Colors.white),
         );
 
         descriptionController.clear();
         selectedDate.value = DateTime.now();
       } else {
         Get.snackbar(
-          response.statusCode == 401
-              ? 'Authentication Failed'
-              : 'Failed',
+          response.statusCode == 401 ? 'Authentication Failed' : 'Failed',
           response.statusCode == 401
               ? 'Your token is missing or invalid. Please login again.'
               : message.isNotEmpty
-                  ? message
-                  : 'Unable to save reminder. Status: ${response.statusCode}',
+              ? message
+              : 'Unable to save reminder. Status: ${response.statusCode}',
           snackPosition: SnackPosition.BOTTOM,
           margin: const EdgeInsets.all(16),
           backgroundColor: Colors.redAccent,
@@ -206,23 +202,15 @@ class RemindersController extends GetxController {
   void onMenuPressed() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(20),
-          ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(
-              Icons.delete_outline,
-              color: Colors.redAccent,
-            ),
+            leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
             title: const Text(
               'Clear Entry',
               style: TextStyle(
@@ -249,4 +237,3 @@ class RemindersController extends GetxController {
     super.onClose();
   }
 }
-

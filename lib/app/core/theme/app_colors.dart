@@ -13,7 +13,7 @@ class AppColors {
   static const Color secondaryTeal = Color(0xFF1BBCAC);
 
   static const Color incomeGreen = Color(0xFF27AE60);
-  static const Color expenseRed = Color(0xFFFD9754);
+  static const Color expenseRed = Color(0xFFE87555);
   static const Color iconRed = Color(0xFFA53B29);
   static const Color iconTeal = Color(0xFF006B58);
   static const Color iconLightTeal = Color(0xFF1DB99A);

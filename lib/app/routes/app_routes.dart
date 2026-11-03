@@ -17,15 +17,29 @@ abstract class Routes {
   static const REMINDERS = _Paths.REMINDERS;
   static const REGISTER = _Paths.REGISTER;
   static const LOGIN = _Paths.LOGIN;
+  static const SESSION_GATE = _Paths.SESSION_GATE;
   static const GET_REMINDER = _Paths.GET_REMINDER;
   static const GET_LEND = _Paths.GET_LEND;
+  static const LENDING_REPAYMENT = _Paths.LENDING_REPAYMENT;
+  static const BORROWING_REPAYMENT = _Paths.BORROWING_REPAYMENT;
   static const GET_BORROW = _Paths.GET_BORROW;
   static const GET_LOANS = _Paths.GET_LOANS;
-  static const GET_CHITFUNDS = _Paths.GET_CHITFUNDS;
+  static const LOAN_DISBURSEMENT = _Paths.LOAN_DISBURSEMENT;
+  static const LOAN_PAYMENT = _Paths.LOAN_PAYMENT;
+  static const LOAN_PREPAYMENT = _Paths.LOAN_PREPAYMENT;
   static const POST_LEND = _Paths.POST_LEND;
   static const POSTBORROW = _Paths.POSTBORROW;
   static const POSTLOAN = _Paths.POSTLOAN;
   static const POSTCHITFUND = _Paths.POSTCHITFUND;
+  static const ADD_BANK_ACCOUNT = _Paths.ADD_BANK_ACCOUNT;
+  static const bankAccounts = _Paths.bankAccounts;
+  static const CREATE_TRANSFER = _Paths.CREATE_TRANSFER;
+  static const accountTransactions = _Paths.accountTransactions;
+  static const PROFILE = _Paths.PROFILE;
+  static const CREDIT_CARDS = _Paths.CREDIT_CARDS;
+  static const CREATE_BUDGET = _Paths.CREATE_BUDGET;
+  static const BUDGET_SPENDING = _Paths.BUDGET_SPENDING;
+  static const BUDGET_SPENDING_HOME = _Paths.BUDGET_SPENDING_HOME;
 }
 
 abstract class _Paths {
@@ -44,13 +58,27 @@ abstract class _Paths {
   static const REMINDERS = '/reminders';
   static const REGISTER = '/register';
   static const LOGIN = '/login';
+  static const SESSION_GATE = '/session-gate';
   static const GET_REMINDER = '/get-reminder';
   static const GET_LEND = '/get-lend';
+  static const LENDING_REPAYMENT = '/lending-repayment';
+  static const BORROWING_REPAYMENT = '/borrowing-repayment';
   static const GET_BORROW = '/get-borrow';
   static const GET_LOANS = '/get-loans';
-  static const GET_CHITFUNDS = '/get-chitfunds';
+  static const LOAN_DISBURSEMENT = '/loan-disbursement';
+  static const LOAN_PAYMENT = '/loan-payment';
+  static const LOAN_PREPAYMENT = '/loan-prepayment';
   static const POST_LEND = '/post-lend';
   static const POSTBORROW = '/postborrow';
   static const POSTLOAN = '/postloan';
   static const POSTCHITFUND = '/postchitfund';
+  static const ADD_BANK_ACCOUNT = '/add-bank-account';
+  static const bankAccounts = '/bank-accounts';
+  static const CREATE_TRANSFER = '/CreateTransferView';
+  static const accountTransactions = '/account-transactions';
+  static const PROFILE = '/profile';
+  static const CREDIT_CARDS = '/credit-cards';
+  static const CREATE_BUDGET = '/create-budget';
+  static const BUDGET_SPENDING = '/budget-spending/:budgetUuid';
+  static const BUDGET_SPENDING_HOME = '/budget-spending';
 }

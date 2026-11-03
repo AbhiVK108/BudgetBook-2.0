@@ -1,4 +1,4 @@
-package com.example.budget_book_2026
+package com.s2s.budgetbook
 
 import io.flutter.embedding.android.FlutterActivity
 

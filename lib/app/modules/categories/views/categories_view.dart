@@ -28,26 +28,20 @@ class CategoriesView extends GetView<CategoriesController> {
             color: AppColors.cardBgWhite,
           ),
         ),
-actions: [
-  IconButton(
-    onPressed: controller.refreshCategories,
-    icon: const Icon(
-      Icons.refresh,
-      color: AppColors.cardBgWhite,
-    ),
-  ),
-  const SizedBox(width: 8),
-  const Icon(
-    Icons.more_vert,
-    color: AppColors.cardBgWhite,
-  ),
-  const SizedBox(width: 8),
-],
-),
+        actions: [
+          IconButton(
+            onPressed: controller.refreshCategories,
+            icon: const Icon(Icons.refresh, color: AppColors.cardBgWhite),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.more_vert, color: AppColors.cardBgWhite),
+          const SizedBox(width: 8),
+        ],
+      ),
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0F8F7F),
-        onPressed: () {},
+        onPressed: _showCreateCategoryDialog,
         child: const Icon(Icons.add, color: AppColors.cardBgWhite),
       ),
 
@@ -65,19 +59,15 @@ actions: [
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
-            
+
                 final data = controller.filteredCategories;
-            
+
                 if (data.isEmpty) {
-                  return const Center(
-                    child: Text("No categories found"),
-                  );
+                  return const Center(child: Text("No categories found"));
                 }
-            
+
                 return GridView.builder(
                   itemCount: data.length,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -88,7 +78,7 @@ actions: [
                   ),
                   itemBuilder: (_, index) {
                     final item = data[index];
-            
+
                     return CategoryItem(
                       title: item["title"] ?? "",
                       amount: item["amount"] ?? "₹ 0",
@@ -101,6 +91,86 @@ actions: [
         ),
       ),
     );
+  }
+
+  Future<void> _showCreateCategoryDialog() async {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    var type = controller.isIncome.value ? 'income' : 'expense';
+    var submitting = false;
+
+    await Get.dialog<void>(
+      StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Add category'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Category name',
+                    hintText: 'e.g. Groceries',
+                  ),
+                  validator: (value) {
+                    final name = value?.trim() ?? '';
+                    if (name.isEmpty) return 'Enter a category name';
+                    if (name.length < 2) return 'Category name is too short';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: type,
+                  decoration: const InputDecoration(labelText: 'Category type'),
+                  items: const [
+                    DropdownMenuItem(value: 'income', child: Text('Income')),
+                    DropdownMenuItem(value: 'expense', child: Text('Expense')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => type = value);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting ? null : Get.back,
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setState(() => submitting = true);
+                      final created = await controller.createCategory(
+                        name: nameController.text,
+                        type: type,
+                      );
+                      if (context.mounted) setState(() => submitting = false);
+                      if (created && context.mounted) Get.back(result: true);
+                    },
+              child: submitting
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+      barrierDismissible: false,
+    );
+
+    nameController.dispose();
   }
 
   /// ================= TOGGLE =================
@@ -173,33 +243,6 @@ actions: [
         ],
       ),
     );
-  }
-
-  /// ================= DATA =================
-  List<Map<String, dynamic>> _data() {
-    if (controller.isIncome.value) {
-      return [
-        {"title": "Grants", "amount": "₹ 1000"},
-        {"title": "Salary", "amount": "₹ 59635"},
-        {"title": "Salary", "amount": "₹ 59635"},
-        {"title": "Lend", "amount": "₹ 2500"},
-        {"title": "Awards", "amount": "₹ 0"},
-        {"title": "Sales", "amount": "₹ 0"},
-        {"title": "malllll", "amount": "₹ 0"},
-        {"title": "some", "amount": "₹ 0"},
-        {"title": "Card", "amount": "₹ 0"},
-        {"title": "Latest", "amount": "₹ 0"},
-      ];
-    } else {
-      return [
-        {"title": "Food", "amount": "₹ 2000"},
-        {"title": "Shopping", "amount": "₹ 5000"},
-        {"title": "Travel", "amount": "₹ 1500"},
-        {"title": "Bills", "amount": "₹ 3000"},
-        {"title": "EMI", "amount": "₹ 4000"},
-        {"title": "Health", "amount": "₹ 1000"},
-      ];
-    }
   }
 }
 
@@ -295,4 +338,3 @@ class CategoryItem extends GetView<CategoriesController> {
     );
   }
 }
-

@@ -1,4 +1,3 @@
-﻿
 import 'package:budget_book_2026/app/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -23,18 +22,17 @@ class GetLendView extends GetView<GetLendController> {
       backgroundColor: scaffoldColor,
       appBar: _buildAppBar(),
       body: Obx(() {
-        if (controller.isLoading.value && controller.lends.isEmpty) {
+        if (controller.isLoading.value) {
           return const Center(
             child: CircularProgressIndicator(color: primaryColor),
           );
         }
 
-        if (controller.errorMessage.value.isNotEmpty &&
-            controller.lends.isEmpty) {
+        if (controller.errorMessage.value.isNotEmpty) {
           return _errorState();
         }
 
-        if (controller.lends.isEmpty) {
+        if (controller.selectedLend.isEmpty) {
           return _emptyState();
         }
 
@@ -48,7 +46,7 @@ class GetLendView extends GetView<GetLendController> {
 
         return RefreshIndicator(
           color: primaryColor,
-          onRefresh: controller.fetchLends,
+          onRefresh: controller.refreshDetails,
           child: ListView(
             padding: EdgeInsets.fromLTRB(18.w, 20.h, 18.w, 30.h),
             children: [
@@ -85,12 +83,7 @@ class GetLendView extends GetView<GetLendController> {
                     ),
 
                     Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        20.w,
-                        18.h,
-                        20.w,
-                        20.h,
-                      ),
+                      padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 20.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -335,12 +328,12 @@ class GetLendView extends GetView<GetLendController> {
 
                           SizedBox(height: 16.h),
 
-                          // RECEIVED BUTTON
+                          // RECORD REPAYMENT
                           SizedBox(
                             width: double.infinity,
                             height: 43.h,
                             child: ElevatedButton(
-                              onPressed: _showReceivedDialog,
+                              onPressed: _recordRepayment,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryColor,
                                 foregroundColor: Colors.white,
@@ -350,7 +343,7 @@ class GetLendView extends GetView<GetLendController> {
                                 ),
                               ),
                               child: Text(
-                                'Received',
+                                'Record repayment',
                                 style: TextStyle(
                                   fontSize: 13.sp,
                                   fontWeight: FontWeight.w700,
@@ -365,19 +358,21 @@ class GetLendView extends GetView<GetLendController> {
                   ],
                 ),
               ),
+              SizedBox(height: 16.h),
+              _repaymentHistory(),
             ],
           ),
         );
       }),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Get.toNamed(Routes.POST_LEND);
-          await controller.fetchLends();
-        },
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () async {
+      //     await Get.toNamed(Routes.POST_LEND);
+      //     await controller.fetchLends();
+      //   },
+      //   backgroundColor: primaryColor,
+      //   foregroundColor: Colors.white,
+      //   child: const Icon(Icons.add),
+      // ),
     );
   }
 
@@ -404,38 +399,10 @@ class GetLendView extends GetView<GetLendController> {
           ),
         ),
       ),
-      actions: [
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: Colors.white),
-          onSelected: (value) {
-            if (value == 'refresh') controller.fetchLends();
-            if (value == 'edit') _editLend();
-            if (value == 'delete') _showDeleteDialog();
-          },
-          itemBuilder: (_) => const [
-            PopupMenuItem(
-              value: 'refresh',
-              child: Text('Refresh'),
-            ),
-            PopupMenuItem(
-              value: 'edit',
-              child: Text('Edit lend'),
-            ),
-            PopupMenuItem(
-              value: 'delete',
-              child: Text('Delete lend'),
-            ),
-          ],
-        ),
-      ],
-    );
+          );
   }
 
-  Widget _dateInfo(
-    String title,
-    String value, {
-    bool isInterest = false,
-  }) {
+  Widget _dateInfo(String title, String value, {bool isInterest = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -463,6 +430,185 @@ class GetLendView extends GetView<GetLendController> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _repaymentHistory() {
+    return Obx(() {
+      final repayments = controller.repayments;
+      return Container(
+        padding: EdgeInsets.all(18.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: borderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Repayment history',
+                    style: TextStyle(
+                      color: darkColor,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: fontFamily,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Refresh repayment history',
+                  onPressed: controller.fetchRepayments,
+                  icon: Icon(
+                    Icons.refresh_rounded,
+                    color: primaryColor,
+                    size: 20.sp,
+                  ),
+                ),
+              ],
+            ),
+            if (controller.isLoadingRepayments.value)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(color: primaryColor),
+                ),
+              )
+            else if (controller.repaymentError.value.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    controller.repaymentError.value,
+                    style: TextStyle(
+                      color: labelColor,
+                      fontSize: 13.sp,
+                      fontFamily: fontFamily,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: controller.fetchRepayments,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              )
+            else if (repayments.isEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                child: Text(
+                  'No repayments recorded yet.',
+                  style: TextStyle(
+                    color: labelColor,
+                    fontSize: 13.sp,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              )
+            else
+              ...repayments.map(_repaymentTile),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _repaymentTile(Map<String, dynamic> repayment) {
+    final amount =
+        repayment['amount_received'] ??
+        repayment['amount'] ??
+        repayment['paid_amount'] ??
+        '0.00';
+    final date =
+        repayment['repayment_date'] ??
+        repayment['date'] ??
+        repayment['transaction_date'] ??
+        repayment['created_at'] ??
+        '';
+    final account = repayment['receiving_account'];
+    final accountName =
+        repayment['receiving_account_name'] ??
+        repayment['account_name'] ??
+        (account is Map ? account['name'] : null);
+    final reference = repayment['reference'];
+
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: borderColor)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36.w,
+            height: 36.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F6F3),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Icon(
+              Icons.south_west_rounded,
+              color: primaryColor,
+              size: 18.sp,
+            ),
+          ),
+          SizedBox(width: 11.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  date.toString(),
+                  style: TextStyle(
+                    color: darkColor,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+                if (accountName != null && accountName.toString().isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 3.h),
+                    child: Text(
+                      accountName.toString(),
+                      style: TextStyle(
+                        color: labelColor,
+                        fontSize: 11.sp,
+                        fontFamily: fontFamily,
+                      ),
+                    ),
+                  ),
+                if (reference != null && reference.toString().isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 3.h),
+                    child: Text(
+                      reference.toString(),
+                      style: TextStyle(
+                        color: mutedColor,
+                        fontSize: 11.sp,
+                        fontFamily: fontFamily,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            '${(controller.selectedLend['currency'] ?? 'INR').toString().toUpperCase()} $amount',
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: primaryColor,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w800,
+              fontFamily: fontFamily,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -528,19 +674,12 @@ class GetLendView extends GetView<GetLendController> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 45,
-              color: Colors.redAccent,
-            ),
+            const Icon(Icons.error_outline, size: 45, color: Colors.redAccent),
             SizedBox(height: 12.h),
             Text(
               controller.errorMessage.value,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: labelColor,
-                fontFamily: fontFamily,
-              ),
+              style: TextStyle(color: labelColor, fontFamily: fontFamily),
             ),
             SizedBox(height: 12.h),
             ElevatedButton(
@@ -576,6 +715,19 @@ class GetLendView extends GetView<GetLendController> {
     await controller.fetchLends();
   }
 
+  Future<void> _recordRepayment() async {
+    final result = await Get.toNamed(
+      Routes.LENDING_REPAYMENT,
+      arguments: Map<String, dynamic>.from(controller.selectedLend),
+    );
+    if (result is Map) {
+      controller.applyRepaymentAgreement(Map<String, dynamic>.from(result));
+      await controller.fetchRepayments();
+    } else if (result == true) {
+      await controller.refreshDetails();
+    }
+  }
+
   // DELETE
   Future<void> _showDeleteDialog() async {
     final confirmed = await Get.dialog<bool>(
@@ -608,41 +760,6 @@ class GetLendView extends GetView<GetLendController> {
     Get.snackbar(
       'Delete',
       'Add your delete API method here to delete this lend record.',
-      snackPosition: SnackPosition.BOTTOM,
-    );
-  }
-
-  // RECEIVED
-  Future<void> _showReceivedDialog() async {
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: const Text('Mark as received?'),
-        content: const Text(
-          'Confirm that this lend amount has been received back.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Get.back(result: true),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    // Connect this to the backend status/update API when available.
-    Get.snackbar(
-      'Received',
-      'Connect the Received action to your API to save this status.',
       snackPosition: SnackPosition.BOTTOM,
     );
   }

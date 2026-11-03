@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -9,11 +8,12 @@ class PostLendView extends GetView<PostLendController> {
   const PostLendView({super.key});
 
   static const Color primary = Color(0xFF079B8D);
-  static const Color dark = Color(0xFF374151);
+  static const Color dark = Color(0xFF263445);
   static const Color hint = Color(0xFF94A3B8);
-  static const Color border = Color(0xFFDCE4EC);
-  static const Color background = Color(0xFFF5F6F6);
-  static const Color fieldBackground = Color(0xFFF8FAFC);
+  static const Color border = Color(0xFFE2EAF0);
+  static const Color background = Color(0xFFF3F5F5);
+  static const Color fieldBackground = Color(0xFFF7F9FB);
+  static const Color mintBorder = Color(0xFFBCEBE4);
 
   @override
   Widget build(BuildContext context) {
@@ -22,60 +22,19 @@ class PostLendView extends GetView<PostLendController> {
       body: SafeArea(
         child: Column(
           children: [
-            // App bar
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.fromLTRB(18.w, 20.h, 18.w, 20.h),
-              decoration: BoxDecoration(
-                color: primary,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(18.r),
-                  bottomRight: Radius.circular(18.r),
-                ),
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: Get.back,
-                    child: Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                      size: 27.sp,
-                    ),
-                  ),
-                  SizedBox(width: 25.w),
-                  Obx(
-                    () => Text(
-                      controller.isEditMode.value ? 'Update Lending' : 'Lending',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 23.sp,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'HankenGrotesk',
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.more_vert,
-                    color: Colors.white,
-                    size: 27.sp,
-                  ),
-                ],
-              ),
-            ),
-
-            // Form
+            _buildAppBar(),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 24.h),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Person details
+                    // BORROWER DETAILS
                     _section(
                       children: [
-                        _label('Person'),
+                        _label('Borrower name'),
                         SizedBox(height: 8.h),
                         _input(
                           controller: controller.personController,
@@ -83,10 +42,13 @@ class PostLendView extends GetView<PostLendController> {
                           icon: Icons.person_outline,
                           textCapitalization: TextCapitalization.words,
                         ),
-                        _helper('Enter the name of the person'),
-                        SizedBox(height: 18.h),
+                        _helper(
+                          'Enter the person or business you are lending to',
+                        ),
 
-                        _label('Mobile Number'),
+                        SizedBox(height: 14.h),
+
+                        _label('Mobile number (optional)'),
                         SizedBox(height: 8.h),
                         _input(
                           controller: controller.phoneController,
@@ -96,203 +58,136 @@ class PostLendView extends GetView<PostLendController> {
                           keyboardType: TextInputType.phone,
                           maxLength: 10,
                         ),
-                        _helper('Enter a 10-digit mobile number'),
+                        _helper(
+                          'Add a 10-digit number if you want to record it',
+                        ),
                       ],
                     ),
 
-                    SizedBox(height: 18.h),
+                    SizedBox(height: 16.h),
 
-                    // Amount and interest
+                    // PRINCIPAL AND INTEREST
                     _section(
                       children: [
-                        _label('Amount'),
+                        _label('Principal amount'),
                         SizedBox(height: 8.h),
                         _input(
                           controller: controller.amountController,
                           hint: '0.00',
                           icon: Icons.currency_rupee,
-                          keyboardType:
-                              const TextInputType.numberWithOptions(
+                          keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
                         ),
-                        _helper('Enter the amount'),
-                        SizedBox(height: 22.h),
+                        _helper('Enter the amount you are lending'),
 
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _label('Rate of Interest'),
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 6.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFFFFB),
-                                borderRadius: BorderRadius.circular(20.r),
-                                border: Border.all(
-                                  color: const Color(0xFFC8F5EC),
-                                ),
-                              ),
-                              child: Text(
-                                'Interest in ₹ / month',
-                                style: TextStyle(
-                                  color: primary,
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
+                        SizedBox(height: 14.h),
+
+                        _label('Interest method'),
+                        SizedBox(height: 8.h),
+                        _readOnlyField(
+                          'Fixed interest',
+                          icon: Icons.percent_rounded,
                         ),
+                        _helper(
+                          'Fixed amount due in addition to the principal',
+                        ),
+
+                        SizedBox(height: 12.h),
+
+                        _label('Fixed interest amount'),
                         SizedBox(height: 8.h),
                         _input(
                           controller: controller.interestController,
-                          hint: '0',
+                          hint: '0.00',
                           icon: Icons.currency_rupee,
-                          suffixText: '/ 100 ₹',
-                          keyboardType:
-                              const TextInputType.numberWithOptions(
+                          keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
                         ),
+                        _helper('Enter the total fixed interest amount'),
+                      ],
+                    ),
+
+                    SizedBox(height: 16.h),
+
+                    // CATEGORY AND SOURCE ACCOUNT
+                    _section(
+                      children: [
+                        _label('Interest income category'),
+                        SizedBox(height: 8.h),
+                        _categorySelector(),
+                        _helper('Choose the income category for this lending'),
+
+                        SizedBox(height: 12.h),
+
+                        _label('Source account'),
+                        SizedBox(height: 8.h),
+                        _sourceAccountSelector(),
                         _helper(
-                          'Enter interest in Rupees (₹)',
-                          trailing: 'Per month standard',
+                          'The account the lending amount will be paid from',
                         ),
                       ],
                     ),
 
-                    SizedBox(height: 18.h),
+                    SizedBox(height: 16.h),
 
-                    // Receive date and return date
+                    // DATES
                     _section(
                       children: [
-                        _label('Give Date'),
+                        _label('Lending date'),
                         SizedBox(height: 8.h),
                         Obx(
                           () => _dateField(
                             date: controller.giveDate.value,
-                            onTap: () =>
-                                controller.selectGiveDate(context),
+                            onTap: () => controller.selectGiveDate(context),
                           ),
                         ),
-                        _helper('Select the date you gave the amount'),
-                        SizedBox(height: 20.h),
+                        _helper('Select when you gave the lending amount'),
 
-                        _label('Return Date'),
+                        SizedBox(height: 14.h),
+
+                        _label('Expected repayment date'),
                         SizedBox(height: 8.h),
                         Obx(
                           () => _dateField(
                             date: controller.returnDate.value,
-                            onTap: () =>
-                                controller.selectReturnDate(context),
+                            onTap: () => controller.selectReturnDate(context),
                           ),
                         ),
-                        _helper('Expected repayment date'),
+                        _helper('Select when you expect repayment'),
                       ],
                     ),
 
-                    SizedBox(height: 18.h),
+                    SizedBox(height: 16.h),
 
-                    // Description and receipt
+                    // NOTES
                     _section(
                       children: [
-                        _label('Description'),
+                        _label('Notes (optional)'),
                         SizedBox(height: 8.h),
                         TextField(
                           controller: controller.descriptionController,
                           maxLines: 4,
+                          minLines: 3,
                           textCapitalization: TextCapitalization.sentences,
+                          style: _fieldTextStyle(),
                           decoration: _decoration(
-                            hint:
-                                'Mention the reason or loan agreement terms...',
+                            hint: 'Add the purpose or agreement details...',
                           ),
                         ),
-                        _helper('Purpose of borrowing'),
-                        SizedBox(height: 24.h),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _label('Upload Receipt (optional)'),
-                            ),
-                            Text(
-                              'PNG, JPG or PDF',
-                              style: TextStyle(
-                                fontSize: 10.sp,
-                                color: hint,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 12.h),
-
-                        // Receipt placeholder.
-                        // File selection and upload are not connected yet.
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 12.w,
-                            vertical: 24.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFCFDFE),
-                            borderRadius: BorderRadius.circular(20.r),
-                            border: Border.all(
-                              color: const Color(0xFFCBD5E1),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(15.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16.r),
-                                  border: Border.all(color: border),
-                                ),
-                                child: Icon(
-                                  Icons.camera_alt_outlined,
-                                  size: 36.sp,
-                                  color: const Color(0xFF64748B),
-                                ),
-                              ),
-                              SizedBox(height: 12.h),
-                              Text(
-                                'Tap to attach receipt or photo',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                                  color: dark,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              SizedBox(height: 6.h),
-                              Text(
-                                'PNG, JPG or PDF files',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 11.sp,
-                                  color: hint,
-                                ),
-                              ),
-                            ],
-                          ),
+                        _helper(
+                          'Optional details saved with this lending record',
                         ),
                       ],
                     ),
 
-                    SizedBox(height: 24.h),
+                    SizedBox(height: 20.h),
 
-                    // Save button
+                    // SAVE / UPDATE
                     Obx(
                       () => SizedBox(
-                        width: double.infinity,
-                        height: 58.h,
+                        height: 52.h,
                         child: ElevatedButton.icon(
                           onPressed: controller.isLoading.value
                               ? null
@@ -300,35 +195,33 @@ class PostLendView extends GetView<PostLendController> {
                           icon: controller.isLoading.value
                               ? SizedBox(
                                   width: 20.w,
-                                  height: 20.h,
+                                  height: 20.w,
                                   child: const CircularProgressIndicator(
                                     strokeWidth: 2,
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Icon(Icons.save_outlined),
+                              : Icon(Icons.save_outlined, size: 21.sp),
                           label: Text(
                             controller.isLoading.value
                                 ? (controller.isEditMode.value
-                                    ? 'Updating...'
-                                    : 'Saving...')
+                                      ? 'Updating...'
+                                      : 'Saving...')
                                 : (controller.isEditMode.value
-                                    ? 'Update'
-                                    : 'Save'),
+                                      ? 'Update Lending'
+                                      : 'Save Lending'),
                             style: TextStyle(
-                              fontSize: 17.sp,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w700,
                               fontFamily: 'HankenGrotesk',
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primary,
                             foregroundColor: Colors.white,
-                            disabledBackgroundColor:
-                                primary.withValues(alpha: 0.6),
-                            elevation: 3,
+                            elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18.r),
+                              borderRadius: BorderRadius.circular(10.r),
                             ),
                           ),
                         ),
@@ -344,19 +237,57 @@ class PostLendView extends GetView<PostLendController> {
     );
   }
 
-  // Section card
+  // COMPACT TEAL HEADER
+  Widget _buildAppBar() {
+    return Container(
+      height: 58.h,
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: primary,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(10.r),
+          bottomRight: Radius.circular(10.r),
+        ),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: Get.back,
+            child: Icon(Icons.arrow_back, color: Colors.white, size: 24.sp),
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Obx(
+              () => Text(
+                controller.isEditMode.value ? 'Update Lending' : 'Lending',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'HankenGrotesk',
+                ),
+              ),
+            ),
+          ),
+          Icon(Icons.more_vert, color: Colors.white, size: 24.sp),
+        ],
+      ),
+    );
+  }
+
+  // WHITE CARD WITH MINT BORDER AND BOTTOM SHADOW
   Widget _section({required List<Widget> children}) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(18.w),
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: const Color(0xFFC9F1EA)),
+        borderRadius: BorderRadius.circular(11.r),
+        border: Border.all(color: mintBorder, width: 0.8),
         boxShadow: [
           BoxShadow(
             color: primary.withValues(alpha: 0.12),
-            offset: Offset(0, 5.h),
+            offset: Offset(0, 2.h),
             blurRadius: 1,
           ),
         ],
@@ -368,20 +299,20 @@ class PostLendView extends GetView<PostLendController> {
     );
   }
 
-  // Field label
+  // FIELD LABEL
   Widget _label(String text) {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 14.sp,
+        fontSize: 15.sp,
         color: dark,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         fontFamily: 'HankenGrotesk',
       ),
     );
   }
 
-  // Text input
+  // TEXT INPUT
   Widget _input({
     required TextEditingController controller,
     required String hint,
@@ -397,6 +328,7 @@ class PostLendView extends GetView<PostLendController> {
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
       maxLength: maxLength,
+      style: _fieldTextStyle(),
       decoration: _decoration(
         hint: hint,
         icon: icon,
@@ -406,7 +338,16 @@ class PostLendView extends GetView<PostLendController> {
     );
   }
 
-  // Shared input decoration
+  TextStyle _fieldTextStyle() {
+    return TextStyle(
+      color: dark,
+      fontSize: 15.sp,
+      fontWeight: FontWeight.w500,
+      fontFamily: 'HankenGrotesk',
+    );
+  }
+
+  // SHARED COMPACT INPUT DECORATION
   InputDecoration _decoration({
     required String hint,
     IconData? icon,
@@ -418,70 +359,66 @@ class PostLendView extends GetView<PostLendController> {
       hintStyle: TextStyle(
         color: hintColor,
         fontSize: 14.sp,
+        fontWeight: FontWeight.w400,
       ),
       prefixIcon: icon == null
           ? null
           : Icon(
               icon,
               color: hint == '0.00' ? primary : hintColor,
-              size: 21.sp,
+              size: 20.sp,
             ),
+      prefixIconConstraints: icon == null
+          ? null
+          : BoxConstraints(minWidth: 44.w, minHeight: 48.h),
       prefixText: prefixText,
       prefixStyle: TextStyle(
         color: dark,
-        fontSize: 13.sp,
+        fontSize: 14.sp,
         fontWeight: FontWeight.w600,
       ),
       suffixText: suffixText,
       suffixStyle: TextStyle(
-        color: hintColor,
-        fontSize: 12.sp,
+        color: dark.withValues(alpha: 0.6),
+        fontSize: 13.sp,
       ),
+      isDense: true,
       filled: true,
       fillColor: fieldBackground,
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: 14.w,
-        vertical: 17.h,
-      ),
+      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(8.r),
         borderSide: const BorderSide(color: border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(8.r),
         borderSide: const BorderSide(color: border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.r),
-        borderSide: const BorderSide(
-          color: primary,
-          width: 1.4,
-        ),
+        borderRadius: BorderRadius.circular(8.r),
+        borderSide: const BorderSide(color: primary, width: 1),
       ),
     );
   }
 
   static const Color hintColor = Color(0xFF94A3B8);
 
-  // Helper text
+  // HELPER TEXT WITH OPTIONAL TRAILING LABEL
   Widget _helper(String text, {String? trailing}) {
     return Padding(
-      padding: EdgeInsets.only(left: 5.w, top: 8.h),
+      padding: EdgeInsets.only(left: 2.w, top: 6.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline,
-            size: 13.sp,
-            color: hintColor,
-          ),
+          Icon(Icons.info_outline, size: 14.sp, color: hintColor),
           SizedBox(width: 6.w),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
-                color: const Color(0xFF64748B),
-                fontSize: 11.sp,
+                color: const Color(0xFF7D8DA1),
+                fontSize: 12.sp,
+                height: 1.25,
               ),
             ),
           ),
@@ -492,7 +429,8 @@ class PostLendView extends GetView<PostLendController> {
                 textAlign: TextAlign.end,
                 style: TextStyle(
                   color: hintColor,
-                  fontSize: 10.sp,
+                  fontSize: 11.sp,
+                  height: 1.25,
                 ),
               ),
             ),
@@ -501,35 +439,190 @@ class PostLendView extends GetView<PostLendController> {
     );
   }
 
-  // Date picker field
-  Widget _dateField({
-    required DateTime? date,
-    required VoidCallback onTap,
-  }) {
+  Widget _readOnlyField(String value, {required IconData icon}) {
+    return Container(
+      width: double.infinity,
+      height: 50.h,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: fieldBackground,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: hint, size: 20.sp),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: dark,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _categorySelector() {
+    return Obx(() {
+      if (controller.isLoadingCategories.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (controller.categoryLoadError.value.isNotEmpty) {
+        return _selectorError(
+          controller.categoryLoadError.value,
+          controller.loadIncomeCategories,
+        );
+      }
+      if (controller.categories.isEmpty) {
+        return _selectorError(
+          'No active income categories available.',
+          controller.loadIncomeCategories,
+        );
+      }
+
+      final selectedUuid = controller.selectedInterestCategoryUuid.value;
+      final selectedValue =
+          controller.categories.any(
+            (category) => controller.categoryUuid(category) == selectedUuid,
+          )
+          ? selectedUuid
+          : null;
+      return DropdownButtonFormField<String>(
+        initialValue: selectedValue,
+        isExpanded: true,
+        decoration: _decoration(
+          hint: 'Select an income category',
+          icon: Icons.category_outlined,
+        ),
+        style: _fieldTextStyle(),
+        items: controller.categories
+            .map(
+              (category) => DropdownMenuItem<String>(
+                value: controller.categoryUuid(category),
+                child: Text(
+                  controller.categoryName(category),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            )
+            .toList(),
+        onChanged: (uuid) =>
+            controller.selectedInterestCategoryUuid.value = uuid,
+      );
+    });
+  }
+
+  Widget _sourceAccountSelector() {
+    return Obx(() {
+      if (controller.isLoadingAccounts.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (controller.accountLoadError.value.isNotEmpty) {
+        return _selectorError(
+          controller.accountLoadError.value,
+          controller.loadSourceAccounts,
+        );
+      }
+      if (controller.accounts.isEmpty) {
+        return _selectorError(
+          'No active accounts available.',
+          controller.loadSourceAccounts,
+        );
+      }
+
+      final selectedUuid = controller.selectedSourceAccountUuid.value;
+      final selectedValue =
+          controller.accounts.any(
+            (account) => controller.accountUuid(account) == selectedUuid,
+          )
+          ? selectedUuid
+          : null;
+      return DropdownButtonFormField<String>(
+        initialValue: selectedValue,
+        isExpanded: true,
+        decoration: _decoration(
+          hint: 'Select the source account',
+          icon: Icons.account_balance_wallet_outlined,
+        ),
+        style: _fieldTextStyle(),
+        items: controller.accounts
+            .map(
+              (account) => DropdownMenuItem<String>(
+                value: controller.accountUuid(account),
+                child: Text(
+                  controller.accountName(account),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            )
+            .toList(),
+        onChanged: (uuid) => controller.selectedSourceAccountUuid.value = uuid,
+      );
+    });
+  }
+
+  Widget _selectorError(String message, Future<void> Function() onRetry) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: fieldBackground,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: hint, fontSize: 13.sp),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+
+  // DATE PICKER FIELD
+  Widget _dateField({required DateTime? date, required VoidCallback onTap}) {
     final String displayDate = date == null
         ? 'mm/dd/yyyy'
         : '${date.month.toString().padLeft(2, '0')}/'
-            '${date.day.toString().padLeft(2, '0')}/'
-            '${date.year}';
+              '${date.day.toString().padLeft(2, '0')}/'
+              '${date.year}';
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16.r),
-      child: InputDecorator(
-        decoration: _decoration(hint: '').copyWith(
-          suffixIcon: Icon(
-            Icons.calendar_month_outlined,
-            color: primary,
-            size: 22.sp,
-          ),
+      borderRadius: BorderRadius.circular(8.r),
+      child: Container(
+        height: 50.h,
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        decoration: BoxDecoration(
+          color: fieldBackground,
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(color: border),
         ),
-        child: Text(
-          displayDate,
-          style: TextStyle(
-            color: date == null ? hint : dark,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                displayDate,
+                style: TextStyle(
+                  color: date == null ? dark : dark,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Icon(Icons.calendar_month_outlined, color: primary, size: 20.sp),
+          ],
         ),
       ),
     );

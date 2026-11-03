@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -9,10 +8,12 @@ class PostborrowView extends GetView<PostborrowController> {
   const PostborrowView({super.key});
 
   static const Color primary = Color(0xFF079B8D);
-  static const Color dark = Color(0xFF374151);
+  static const Color dark = Color(0xFF263445);
   static const Color hint = Color(0xFF94A3B8);
-  static const Color border = Color(0xFFDCE4EC);
-  static const Color background = Color(0xFFF5F6F6);
+  static const Color border = Color(0xFFE2EAF0);
+  static const Color background = Color(0xFFF3F5F5);
+  static const Color fieldBackground = Color(0xFFF7F9FB);
+  static const Color mintBorder = Color(0xFFBCEBE4);
 
   @override
   Widget build(BuildContext context) {
@@ -21,281 +22,125 @@ class PostborrowView extends GetView<PostborrowController> {
       body: SafeArea(
         child: Column(
           children: [
-            // App bar
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.fromLTRB(
-                18.w, 20.h, 18.w, 20.h,
-              ),
-              decoration: BoxDecoration(
-                color: primary,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(18.r),
-                  bottomRight: Radius.circular(18.r),
-                ),
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                      size: 27.sp,
-                    ),
-                  ),
-                  SizedBox(width: 25.w),
-                  Text(
-                    'Borrowing',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 23.sp,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'HankenGrotesk',
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.more_vert,
-                    color: Colors.white,
-                    size: 27.sp,
-                  ),
-                ],
-              ),
-            ),
-
+            _buildAppBar(),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  16.w, 20.h, 16.w, 20.h,
-                ),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Person details
                     _section([
-                      _label('Person'),
+                      _label('Lender name'),
                       SizedBox(height: 8.h),
                       _input(
-                        controller: controller.personController,
+                        controller.personController,
                         hint: 'Person name',
                         icon: Icons.person_outline,
+                        capitalization: TextCapitalization.words,
                       ),
-                      _helper('Enter the name of the person'),
-                      SizedBox(height: 18.h),
-
-                      _label('Mobile Number'),
+                      _helper('Enter the person or business you borrowed from'),
+                      SizedBox(height: 14.h),
+                      _label('Mobile number (optional)'),
                       SizedBox(height: 8.h),
                       _input(
-                        controller: controller.phoneController,
+                        controller.phoneController,
                         hint: '98765 43210',
                         icon: Icons.phone_outlined,
                         prefixText: '+91  ',
                         keyboardType: TextInputType.phone,
+                        maxLength: 10,
                       ),
-                      _helper('Enter a 10-digit mobile number'),
+                      _helper('Add a 10-digit number if you want to record it'),
                     ]),
-
-                    SizedBox(height: 18.h),
-
-                    // Amount and interest
+                    SizedBox(height: 16.h),
                     _section([
-                      _label('Amount'),
+                      _label('Principal amount'),
                       SizedBox(height: 8.h),
                       _input(
-                        controller: controller.amountController,
+                        controller.amountController,
                         hint: '0.00',
                         icon: Icons.currency_rupee,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(
+                        keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                       ),
-                      _helper('Enter the amount'),
-
-                      SizedBox(height: 22.h),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _label('Rate of Interest'),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10.w,
-                              vertical: 6.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEFFFFB),
-                              borderRadius: BorderRadius.circular(20.r),
-                              border: Border.all(
-                                color: const Color(0xFFC8F5EC),
-                              ),
-                            ),
-                            child: Text(
-                              'Percentage: 0.00%',
-                              style: TextStyle(
-                                color: primary,
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      _helper('Enter the amount you are borrowing'),
+                      SizedBox(height: 14.h),
+                      _label('Interest method'),
+                      SizedBox(height: 8.h),
+                      _readOnlyField('Fixed interest'),
+                      _helper('Fixed amount due in addition to the principal'),
+                      SizedBox(height: 12.h),
+                      _label('Fixed interest amount'),
                       SizedBox(height: 8.h),
                       _input(
-                        controller: controller.interestController,
-                        hint: '0',
+                        controller.interestController,
+                        hint: '0.00',
                         icon: Icons.currency_rupee,
-                        suffixText: '/ 100 ₹',
-                        keyboardType:
-                            const TextInputType.numberWithOptions(
+                        keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                       ),
-                      _helper(
-                        'Enter interest in Rupees (₹)',
-                        trailing: 'Per month standard',
-                      ),
+                      _helper('Enter the total fixed interest amount'),
                     ]),
-
-                    SizedBox(height: 18.h),
-
-                    // Receive and return dates
+                    SizedBox(height: 16.h),
                     _section([
-                      _label('Receive Date'),
+                      _label('Interest expense category'),
+                      SizedBox(height: 8.h),
+                      _categorySelector(),
+                      _helper(
+                        'Choose the expense category for borrowing interest',
+                      ),
+                      SizedBox(height: 12.h),
+                      _label('Receiving account'),
+                      SizedBox(height: 8.h),
+                      _accountSelector(),
+                      _helper('The account receiving the borrowed amount'),
+                    ]),
+                    SizedBox(height: 16.h),
+                    _section([
+                      _label('Borrowing date'),
                       SizedBox(height: 8.h),
                       Obx(
                         () => _dateField(
-                          date: controller.receiveDate.value,
-                          onTap: () =>
-                              controller.selectReceiveDate(context),
+                          controller.receiveDate.value,
+                          () => controller.selectReceiveDate(context),
                         ),
                       ),
-                      _helper(
-                        'Select the date you receive the amount',
-                      ),
-
-                      SizedBox(height: 20.h),
-
-                      _label('Return Date'),
+                      _helper('Select when you receive the borrowed amount'),
+                      SizedBox(height: 14.h),
+                      _label('Expected repayment date'),
                       SizedBox(height: 8.h),
                       Obx(
                         () => _dateField(
-                          date: controller.returnDate.value,
-                          onTap: () =>
-                              controller.selectReturnDate(context),
+                          controller.returnDate.value,
+                          () => controller.selectReturnDate(context),
                         ),
                       ),
-                      _helper('Expected repayment date'),
+                      _helper('Select when you expect to repay'),
                     ]),
-
-                    SizedBox(height: 18.h),
-
-                    // Description and receipt
+                    SizedBox(height: 16.h),
                     _section([
-                      _label('Description'),
+                      _label('Notes (optional)'),
                       SizedBox(height: 8.h),
                       TextField(
                         controller: controller.descriptionController,
                         maxLines: 4,
+                        minLines: 3,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: _fieldTextStyle(),
                         decoration: _decoration(
-                          hint:
-                              'Mention the reason or loan agreement terms...',
+                          hint: 'Add the purpose or agreement details...',
                         ),
                       ),
-                      _helper('Purpose of borrowing'),
-
-                      SizedBox(height: 24.h),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _label(
-                              'Upload Receipt (optional)',
-                            ),
-                          ),
-                          Text(
-                            'PNG, JPG or PDF',
-                            style: TextStyle(
-                              fontSize: 10.sp,
-                              color: hint,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 12.h),
-
-                      InkWell(
-                        onTap: () {
-                          Get.snackbar(
-                            'Upload Receipt',
-                            'Connect a file picker to attach a receipt.',
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(20.r),
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 12.w,
-                            vertical: 24.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFCFDFE),
-                            borderRadius: BorderRadius.circular(20.r),
-                            border: Border.all(
-                              color: const Color(0xFFCBD5E1),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(15.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius:
-                                      BorderRadius.circular(16.r),
-                                  border: Border.all(color: border),
-                                ),
-                                child: Icon(
-                                  Icons.camera_alt_outlined,
-                                  size: 36.sp,
-                                  color: const Color(0xFF64748B),
-                                ),
-                              ),
-                              SizedBox(height: 12.h),
-                              Text(
-                                'Tap to attach receipt or photo',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                                  color: dark,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              SizedBox(height: 6.h),
-                              Text(
-                                'Documents remain securely encrypted',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 11.sp,
-                                  color: hint,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      _helper('Optional details saved with this borrowing'),
                     ]),
-
-                    SizedBox(height: 24.h),
-
-                    // Save button
+                    SizedBox(height: 20.h),
                     Obx(
                       () => SizedBox(
-                        width: double.infinity,
-                        height: 58.h,
+                        height: 52.h,
                         child: ElevatedButton.icon(
                           onPressed: controller.isLoading.value
                               ? null
@@ -303,7 +148,7 @@ class PostborrowView extends GetView<PostborrowController> {
                           icon: controller.isLoading.value
                               ? SizedBox(
                                   width: 20.w,
-                                  height: 20.h,
+                                  height: 20.w,
                                   child: const CircularProgressIndicator(
                                     strokeWidth: 2,
                                     color: Colors.white,
@@ -313,21 +158,21 @@ class PostborrowView extends GetView<PostborrowController> {
                           label: Text(
                             controller.isLoading.value
                                 ? 'Saving...'
-                                : 'Save',
-                            style: TextStyle(
-                              fontSize: 17.sp,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'HankenGrotesk',
-                            ),
+                                : 'Save Borrowing',
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primary,
                             foregroundColor: Colors.white,
-                            disabledBackgroundColor:
-                                primary.withValues(alpha: 0.6),
-                            elevation: 3,
+                            disabledBackgroundColor: primary.withValues(
+                              alpha: 0.6,
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18.r),
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                            textStyle: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'HankenGrotesk',
                             ),
                           ),
                         ),
@@ -343,183 +188,321 @@ class PostborrowView extends GetView<PostborrowController> {
     );
   }
 
-  Widget _section(List<Widget> children) {
+  Widget _buildAppBar() {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(18.w),
+      height: 58.h,
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(
-          color: const Color(0xFFC9F1EA),
+        color: primary,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(10.r),
+          bottomRight: Radius.circular(10.r),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: primary.withValues(alpha: 0.12),
-            offset: Offset(0, 5.h),
-            blurRadius: 1,
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: Get.back,
+            child: Icon(Icons.arrow_back, color: Colors.white, size: 24.sp),
+          ),
+          SizedBox(width: 16.w),
+          Text(
+            'Borrowing',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'HankenGrotesk',
+            ),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
     );
   }
 
-  Widget _label(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 14.sp,
-        color: dark,
-        fontWeight: FontWeight.w600,
-        fontFamily: 'HankenGrotesk',
-      ),
-    );
-  }
+  Widget _section(List<Widget> children) => Container(
+    width: double.infinity,
+    padding: EdgeInsets.all(16.w),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(11.r),
+      border: Border.all(color: mintBorder, width: 0.8),
+      boxShadow: [
+        BoxShadow(
+          color: primary.withValues(alpha: 0.12),
+          offset: Offset(0, 2.h),
+          blurRadius: 1,
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    ),
+  );
 
-  Widget _input({
-    required TextEditingController controller,
+  Widget _label(String text) => Text(
+    text,
+    style: TextStyle(
+      fontSize: 15.sp,
+      color: dark,
+      fontWeight: FontWeight.w700,
+      fontFamily: 'HankenGrotesk',
+    ),
+  );
+
+  Widget _input(
+    TextEditingController textController, {
     required String hint,
     required IconData icon,
     String? prefixText,
-    String? suffixText,
     TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: _decoration(
-        hint: hint,
-        icon: icon,
-        prefixText: prefixText,
-        suffixText: suffixText,
-      ),
-    );
-  }
+    TextCapitalization capitalization = TextCapitalization.none,
+    int? maxLength,
+  }) => TextField(
+    controller: textController,
+    keyboardType: keyboardType,
+    textCapitalization: capitalization,
+    maxLength: maxLength,
+    style: _fieldTextStyle(),
+    decoration: _decoration(
+      hint: hint,
+      icon: icon,
+      prefixText: prefixText,
+    ).copyWith(counterText: ''),
+  );
+
+  TextStyle _fieldTextStyle() => TextStyle(
+    color: dark,
+    fontSize: 15.sp,
+    fontWeight: FontWeight.w500,
+    fontFamily: 'HankenGrotesk',
+  );
 
   InputDecoration _decoration({
     required String hint,
     IconData? icon,
     String? prefixText,
-    String? suffixText,
-  }) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(
-        color: const Color(0xFF94A3B8),
-        fontSize: 14.sp,
-      ),
-      prefixIcon: icon == null
-          ? null
-          : Icon(
-              icon,
-              color: hint == '0.00' ? primary : const Color(0xFF94A3B8),
-              size: 21.sp,
-            ),
-      prefixText: prefixText,
-      prefixStyle: TextStyle(
-        color: dark,
-        fontSize: 13.sp,
-        fontWeight: FontWeight.w600,
-      ),
-      suffixText: suffixText,
-      suffixStyle: TextStyle(
-        color: const Color(0xFF94A3B8),
-        fontSize: 12.sp,
-      ),
-      filled: true,
-      fillColor: const Color(0xFFF8FAFC),
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: 14.w,
-        vertical: 17.h,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.r),
-        borderSide: const BorderSide(color: border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.r),
-        borderSide: const BorderSide(color: border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.r),
-        borderSide: const BorderSide(
-          color: primary,
-          width: 1.4,
-        ),
-      ),
-    );
-  }
-
-  Widget _helper(String text, {String? trailing}) {
-    return Padding(
-      padding: EdgeInsets.only(left: 5.w, top: 8.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.info_outline,
-            size: 13.sp,
-            color: hint,
+  }) => InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(color: PostborrowView.hint, fontSize: 14.sp),
+    prefixIcon: icon == null
+        ? null
+        : Icon(
+            icon,
+            color: hint == '0.00' ? primary : PostborrowView.hint,
+            size: 20.sp,
           ),
-          SizedBox(width: 6.w),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: const Color(0xFF64748B),
-                fontSize: 11.sp,
-              ),
-            ),
-          ),
-          if (trailing != null)
-            Flexible(
-              child: Text(
-                trailing,
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: hint,
-                  fontSize: 10.sp,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+    prefixIconConstraints: icon == null
+        ? null
+        : BoxConstraints(minWidth: 44.w, minHeight: 48.h),
+    prefixText: prefixText,
+    prefixStyle: TextStyle(
+      color: dark,
+      fontSize: 14.sp,
+      fontWeight: FontWeight.w600,
+    ),
+    isDense: true,
+    filled: true,
+    fillColor: fieldBackground,
+    contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8.r),
+      borderSide: const BorderSide(color: border),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8.r),
+      borderSide: const BorderSide(color: border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8.r),
+      borderSide: const BorderSide(color: primary, width: 1),
+    ),
+  );
 
-  Widget _dateField({
-    required DateTime? date,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: _decoration(
-          hint: 'mm/dd/yyyy',
-        ).copyWith(
-          suffixIcon: Icon(
-            Icons.calendar_month_outlined,
-            color: primary,
-            size: 22.sp,
+  Widget _helper(String text) => Padding(
+    padding: EdgeInsets.only(left: 2.w, top: 6.h),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.info_outline, size: 14.sp, color: hint),
+        SizedBox(width: 6.w),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: const Color(0xFF7D8DA1),
+              fontSize: 12.sp,
+              height: 1.25,
+            ),
           ),
         ),
-        child: Text(
-          date == null
-              ? 'mm/dd/yyyy'
-              : '${date.month.toString().padLeft(2, '0')}/'
-                  '${date.day.toString().padLeft(2, '0')}/'
-                  '${date.year}',
+      ],
+    ),
+  );
+
+  Widget _readOnlyField(String value) => Container(
+    width: double.infinity,
+    height: 50.h,
+    padding: EdgeInsets.symmetric(horizontal: 12.w),
+    decoration: BoxDecoration(
+      color: fieldBackground,
+      borderRadius: BorderRadius.circular(8.r),
+      border: Border.all(color: border),
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.percent_rounded, color: hint, size: 20.sp),
+        SizedBox(width: 12.w),
+        Text(
+          value,
           style: TextStyle(
             color: dark,
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
+      ],
+    ),
+  );
+
+  Widget _categorySelector() => Obx(() {
+    if (controller.isLoadingCategories.value) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (controller.categoryLoadError.value.isNotEmpty) {
+      return _selectorError(
+        controller.categoryLoadError.value,
+        controller.loadExpenseCategories,
+      );
+    }
+    if (controller.categories.isEmpty) {
+      return _selectorError(
+        'No active expense categories available.',
+        controller.loadExpenseCategories,
+      );
+    }
+    final selected = controller.selectedInterestCategoryUuid.value;
+    final selectedValue =
+        controller.categories.any(
+          (category) => controller.categoryUuid(category) == selected,
+        )
+        ? selected
+        : null;
+    return DropdownButtonFormField<String>(
+      initialValue: selectedValue,
+      isExpanded: true,
+      decoration: _decoration(
+        hint: 'Select an expense category',
+        icon: Icons.category_outlined,
       ),
+      style: _fieldTextStyle(),
+      items: controller.categories
+          .map(
+            (category) => DropdownMenuItem<String>(
+              value: controller.categoryUuid(category),
+              child: Text(
+                controller.categoryName(category),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (uuid) => controller.selectedInterestCategoryUuid.value = uuid,
     );
-  }
+  });
+
+  Widget _accountSelector() => Obx(() {
+    if (controller.isLoadingAccounts.value) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (controller.accountLoadError.value.isNotEmpty) {
+      return _selectorError(
+        controller.accountLoadError.value,
+        controller.loadReceivingAccounts,
+      );
+    }
+    if (controller.accounts.isEmpty) {
+      return _selectorError(
+        'No active accounts available.',
+        controller.loadReceivingAccounts,
+      );
+    }
+    final selected = controller.selectedReceivingAccountUuid.value;
+    final selectedValue =
+        controller.accounts.any(
+          (account) => controller.accountUuid(account) == selected,
+        )
+        ? selected
+        : null;
+    return DropdownButtonFormField<String>(
+      initialValue: selectedValue,
+      isExpanded: true,
+      decoration: _decoration(
+        hint: 'Select the receiving account',
+        icon: Icons.account_balance_wallet_outlined,
+      ),
+      style: _fieldTextStyle(),
+      items: controller.accounts
+          .map(
+            (account) => DropdownMenuItem<String>(
+              value: controller.accountUuid(account),
+              child: Text(
+                controller.accountName(account),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (uuid) => controller.selectedReceivingAccountUuid.value = uuid,
+    );
+  });
+
+  Widget _selectorError(String message, VoidCallback retry) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          message,
+          style: TextStyle(color: Colors.red.shade700, fontSize: 12.sp),
+        ),
+      ),
+      TextButton(onPressed: retry, child: const Text('Retry')),
+    ],
+  );
+
+  Widget _dateField(DateTime? date, VoidCallback onTap) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(8.r),
+    child: Container(
+      width: double.infinity,
+      height: 50.h,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: fieldBackground,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.calendar_month_outlined, color: hint, size: 20.sp),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              date == null
+                  ? 'Select date'
+                  : '${date.day.toString().padLeft(2, '0')}/'
+                        '${date.month.toString().padLeft(2, '0')}/'
+                        '${date.year}',
+              style: TextStyle(
+                color: date == null ? hint : dark,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Icon(Icons.keyboard_arrow_down, color: hint, size: 20.sp),
+        ],
+      ),
+    ),
+  );
 }

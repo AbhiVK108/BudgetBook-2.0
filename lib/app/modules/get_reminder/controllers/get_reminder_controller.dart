@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:budget_book_2026/app/core/constants/api_endpoints.dart';
 import 'package:budget_book_2026/app/core/services/api_services.dart';
 
 class GetReminderController extends GetxController {
   final ApiService apiService = ApiService();
 
-  final String url =
-      'https://budgetbook.in/api/api/reminder';
+  final String url = ApiEndpoints.legacyReminderUrl;
 
   final Rx<DateTime> selectedDate = DateTime.now().obs;
 
@@ -67,20 +67,14 @@ class GetReminderController extends GetxController {
         errorMessage.value =
             'Failed to fetch reminders (${response.statusCode})';
 
-        Get.snackbar(
-          'Error',
-          errorMessage.value,
-        );
+        Get.snackbar('Error', errorMessage.value);
       }
     } catch (e) {
       errorMessage.value = 'Unable to load reminders';
 
       debugPrint('Fetch reminder error: $e');
 
-      Get.snackbar(
-        'Error',
-        errorMessage.value,
-      );
+      Get.snackbar('Error', errorMessage.value);
     } finally {
       isLoading.value = false;
     }
@@ -90,23 +84,15 @@ class GetReminderController extends GetxController {
   void onMenuPressed() {
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(20),
-          ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(
-              Icons.delete_outline,
-              color: Colors.redAccent,
-            ),
+            leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
             title: const Text(
               'Clear Entry',
               style: TextStyle(

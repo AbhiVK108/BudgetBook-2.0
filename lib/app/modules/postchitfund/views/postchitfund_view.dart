@@ -8,494 +8,380 @@ import '../controllers/postchitfund_controller.dart';
 class PostchitfundView extends GetView<PostchitfundController> {
   const PostchitfundView({super.key});
 
-  static const Color primary = Color(0xFF009688);
-  static const Color background = Color(0xFFF4F6F6);
-  static const Color dark = Color(0xFF374151);
-  static const Color muted = Color(0xFF718096);
-  static const Color fieldBackground = Color(0xFFF8FAFC);
-  static const Color fieldBorder = Color(0xFFDFE6EC);
-  static const String fontFamily = 'HankenGrotesk';
+  static const teal = Color(0xFF079B8D);
+  static const ink = Color(0xFF263445);
+  static const muted = Color(0xFF71808E);
+  static const page = Color(0xFFF3F6F6);
+  static const field = Color(0xFFF8FAFB);
+  static const line = Color(0xFFE3E9EC);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: background,
-      appBar: AppBar(
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 78.h,
-        leading: IconButton(
-          onPressed: Get.back,
-          icon: const Icon(Icons.arrow_back),
-        ),
-        title: Text(
-          'Chitfund',
-          style: TextStyle(
-            fontFamily: fontFamily,
-            fontSize: 25.sp,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'reset') {
-                _resetForm();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'reset', child: Text('Reset form')),
-            ],
-          ),
-          SizedBox(width: 8.w),
-        ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(18.r)),
-        ),
-      ),
+      backgroundColor: page,
       body: SafeArea(
-        top: false,
-        child: Form(
-          key: controller.formKey,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(18.w, 20.h, 18.w, 24.h),
-            child: Column(
-              children: [
-                // CARD 1: CHIT NAME AND AMOUNT
-                _formCard(
-                  children: [
-                    _label('Chit Fund Name'),
-                    _inputField(
-                      controller: controller.chitNameController,
-                      hint: 'Chit Fund Name',
-                      icon: Icons.person_outline,
-                      helper: 'Enter the name of the Chit',
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter the chit fund name';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 22.h),
-                    _label('Amount'),
-                    _inputField(
-                      controller: controller.amountController,
-                      hint: '0.00',
-                      icon: Icons.currency_rupee,
-                      helper: 'Enter the total chit amount',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+        child: Column(
+          children: [
+            _appBar(),
+            Expanded(
+              child: Form(
+                key: controller.formKey,
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.fromLTRB(11.w, 10.h, 11.w, 18.h),
+                  child: Column(
+                    children: [
+                      _section(
+                        icon: Icons.credit_card_outlined,
+                        title: 'Card Identification',
+                        subtitle: 'Basic card identity details',
+                        children: [
+                          _fieldLabel('Card Nickname / Display Name'),
+                          _input(
+                            controller.nameController,
+                            'Sapphire Rewards • Primary',
+                            Icons.edit_outlined,
+                            capitalization: TextCapitalization.words,
+                            validator: _required('Enter a card name'),
+                          ),
+                          _note(
+                            'Friendly hint for notes and categorization only.',
+                          ),
+                          _fieldLabel('Bank / Card Issuer'),
+                          _input(
+                            controller.organizerNameController,
+                            'HDFC Bank / Postman Issuer',
+                            Icons.account_balance_outlined,
+                            capitalization: TextCapitalization.words,
+                            validator: _required('Enter the issuer'),
+                          ),
+                          _fieldLabel('Cardholder name', optional: true),
+                          _input(
+                            controller.memberReferenceController,
+                            'ALEXANDER POSTMAN',
+                            Icons.person_outline,
+                            capitalization: TextCapitalization.words,
+                          ),
+                          _fieldLabel('Last 4 Digits', optional: true),
+                          _input(
+                            controller.groupReferenceController,
+                            '1234',
+                            Icons.more_horiz,
+                            keyboardType: TextInputType.number,
+                            formatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                          ),
+                          _note(
+                            'Used solely to identify physical card and stored securely.',
+                          ),
+                        ],
                       ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}'),
-                        ),
-                      ],
-                      validator: (value) {
-                        final amount = double.tryParse(value?.trim() ?? '');
-                        if (amount == null || amount <= 0) {
-                          return 'Enter a valid amount';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 22.h),
-
-                // CARD 2: MEMBERS AND DURATION
-                _formCard(
-                  children: [
-                    _label('Members'),
-                    _inputField(
-                      controller: controller.membersController,
-                      hint: 'Members',
-                      icon: Icons.groups_outlined,
-                      helper: 'Total no of members involved',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      validator: (value) {
-                        final members = int.tryParse(value?.trim() ?? '');
-                        if (members == null || members <= 0) {
-                          return 'Enter the number of members';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 22.h),
-                    _label('Duration(Months)'),
-                    _inputField(
-                      controller: controller.durationController,
-                      hint: '12',
-                      icon: Icons.calendar_month_outlined,
-                      helper: 'Enter the no of months for the chit',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      validator: (value) {
-                        final months = int.tryParse(value?.trim() ?? '');
-                        if (months == null || months <= 0) {
-                          return 'Enter the duration in months';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 22.h),
-
-                // CARD 3: START AND END DATES
-                _formCard(
-                  children: [
-                    _label('Start Date'),
-                    _dateField(
-                      controller: controller.startDateController,
-                      hint: 'mm/dd/yyyy',
-                      helper: 'Start Date Of the Chit',
-                      onTap: () =>
-                          _pickDate(context, controller.startDateController),
-                    ),
-                    SizedBox(height: 22.h),
-                    _label('End Date'),
-                    _dateField(
-                      controller: controller.endDateController,
-                      hint: 'mm/dd/yyyy',
-                      helper: 'End Date of the chit',
-                      onTap: () =>
-                          _pickDate(context, controller.endDateController),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 22.h),
-
-                // CARD 4: BEFORE LIFT AND AFTER LIFT
-                _formCard(
-                  children: [
-                    _label('Before Lift'),
-                    _dateField(
-                      controller: controller.beforeLiftController,
-                      hint: 'mm/dd/yyyy',
-                      helper: 'Monthly Contribution Before Lift',
-                      onTap: () =>
-                          _pickDate(context, controller.beforeLiftController),
-                    ),
-                    SizedBox(height: 22.h),
-                    _label('After Lift'),
-                    _dateField(
-                      controller: controller.afterLiftController,
-                      hint: 'mm/dd/yyyy',
-                      helper: 'Monthly Contribution after Lift',
-                      onTap: () =>
-                          _pickDate(context, controller.afterLiftController),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 30.h),
-
-                // SAVE BUTTON
-                Obx(
-                  () => SizedBox(
-                    width: double.infinity,
-                    height: 62.h,
-                    child: ElevatedButton(
-                      onPressed: controller.isLoading.value
-                          ? null
-                          : () {
-                              if (controller.formKey.currentState!.validate()) {
-                                controller.saveChitFund();
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primary,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: primary.withValues(alpha: 0.6),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                      ),
-                      child: controller.isLoading.value
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.save_outlined, size: 25.sp),
-                                SizedBox(width: 10.w),
-                                Text(
-                                  'Save',
-                                  style: TextStyle(
-                                    fontFamily: fontFamily,
-                                    fontSize: 21.sp,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
+                      _section(
+                        icon: Icons.account_balance_wallet_outlined,
+                        title: 'Credit Terms & Limit',
+                        subtitle: 'Card commitment & currency limits',
+                        children: [
+                          _fieldLabel('Approved Credit Line'),
+                          _input(
+                            controller.chitValueController,
+                            '1,50,000.00',
+                            Icons.currency_rupee,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
                             ),
-                    ),
+                            formatters: [_amountFormatter],
+                            validator: _positive('credit line'),
+                          ),
+                          _note(
+                            'Total available credit limit assigned by the financial institution.',
+                          ),
+                          _fieldLabel('Ledger Currency'),
+                          _readonly(
+                            'INR (₹) • Regional Lock',
+                            Icons.language_outlined,
+                          ),
+                        ],
+                      ),
+                      _section(
+                        icon: Icons.calendar_month_outlined,
+                        title: 'Billing Cycle & Due Dates',
+                        subtitle: 'Statement generation & payment timelines',
+                        children: [
+                          _fieldLabel('Statement Generation Date'),
+                          _dropdown(
+                            controller.installmentCountController,
+                            '15th of every month',
+                            Icons.calendar_today_outlined,
+                          ),
+                          _fieldLabel('Payment Due Date'),
+                          _dropdown(
+                            controller.installmentAmountController,
+                            '05th of next month (20 days grace)',
+                            Icons.schedule_outlined,
+                          ),
+                        ],
+                      ),
+                      _section(
+                        icon: Icons.notes_outlined,
+                        title: 'Audit Notes & Purpose',
+                        subtitle: 'Optional notes for the ledger',
+                        children: [
+                          _fieldLabel(
+                            'Primary corporate expense & travel rewards card',
+                          ),
+                          TextFormField(
+                            controller: controller.notesController,
+                            maxLines: 2,
+                            style: _textStyle(),
+                            decoration: _decoration(
+                              'Stored with ledger timestamp',
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '47 / 180',
+                              style: TextStyle(color: muted, fontSize: 9.sp),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 1.h),
+                      Obx(
+                        () => SizedBox(
+                          width: double.infinity,
+                          height: 38.h,
+                          child: ElevatedButton.icon(
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : controller.postChit,
+                            icon: controller.isLoading.value
+                                ? SizedBox(
+                                    width: 15.w,
+                                    height: 15.w,
+                                    child: const CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Icon(Icons.check_circle_outline, size: 15.sp),
+                            label: Text(
+                              controller.isLoading.value
+                                  ? 'Saving...'
+                                  : 'Save Credit Card',
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: teal,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6.r),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: Get.back,
+                        child: Text(
+                          'Cancel & Discard',
+                          style: TextStyle(color: muted, fontSize: 10.sp),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _appBar() => Container(
+    height: 36.h,
+    padding: EdgeInsets.symmetric(horizontal: 8.w),
+    decoration: BoxDecoration(
+      color: teal,
+      borderRadius: BorderRadius.vertical(bottom: Radius.circular(6.r)),
+    ),
+    child: Row(
+      children: [
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          onPressed: Get.back,
+          icon: Icon(Icons.arrow_back, color: Colors.white, size: 16.sp),
+        ),
+        SizedBox(width: 9.w),
+        Expanded(
+          child: Text(
+            'Add Credit Card',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
-      ),
-    );
-  }
+        Icon(Icons.more_vert, color: Colors.white, size: 15.sp),
+      ],
+    ),
+  );
 
-  Widget _formCard({required List<Widget> children}) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25.r),
-        border: Border.all(color: const Color(0xFFC8F0EB), width: 1.3),
-        boxShadow: [
-          BoxShadow(
-            color: primary.withValues(alpha: 0.12),
-            blurRadius: 0,
-            offset: Offset(0, 5.h),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.025),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
-    );
-  }
-
-  Widget _label(String text) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: dark,
-          fontFamily: fontFamily,
-          fontSize: 16.sp,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-
-  Widget _inputField({
-    required TextEditingController controller,
-    required String hint,
+  Widget _section({
     required IconData icon,
-    required String helper,
-    TextInputType keyboardType = TextInputType.text,
-    List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
+    required String title,
+    required String subtitle,
+    required List<Widget> children,
+  }) => Container(
+    width: double.infinity,
+    margin: EdgeInsets.only(bottom: 7.h),
+    padding: EdgeInsets.fromLTRB(8.w, 8.h, 8.w, 7.h),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8.r),
+      border: Border.all(color: line),
+    ),
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          validator: validator,
-          style: TextStyle(
-            color: dark,
-            fontFamily: fontFamily,
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: muted,
-              fontFamily: fontFamily,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
+        Row(
+          children: [
+            Container(
+              width: 17.w,
+              height: 17.w,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF4FF),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: Icon(icon, color: const Color(0xFF3979D4), size: 11.sp),
             ),
-            prefixIcon: Icon(
-              icon,
-              color: hint == '0.00' ? primary : muted,
-              size: 24.sp,
+            SizedBox(width: 6.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: ink,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: muted, fontSize: 7.sp),
+                  ),
+                ],
+              ),
             ),
-            filled: true,
-            fillColor: fieldBackground,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16.w,
-              vertical: 19.h,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(19.r),
-              borderSide: const BorderSide(color: fieldBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(19.r),
-              borderSide: const BorderSide(color: fieldBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(19.r),
-              borderSide: const BorderSide(color: primary, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(19.r),
-              borderSide: const BorderSide(color: Colors.redAccent),
-            ),
+          ],
+        ),
+        SizedBox(height: 6.h),
+        ...children.map(
+          (child) => Padding(
+            padding: EdgeInsets.only(bottom: 5.h),
+            child: child,
           ),
         ),
-        SizedBox(height: 9.h),
-        _helperText(helper),
       ],
-    );
-  }
+    ),
+  );
 
-  Widget _dateField({
-    required TextEditingController controller,
-    required String hint,
-    required String helper,
-    required VoidCallback onTap,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(19.r),
-          child: IgnorePointer(
-            child: TextFormField(
-              controller: controller,
-              readOnly: true,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please select a date';
-                }
-                return null;
-              },
-              style: TextStyle(
-                color: dark,
-                fontFamily: fontFamily,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w700,
-              ),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: TextStyle(
-                  color: dark,
-                  fontFamily: fontFamily,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-                suffixIcon: Icon(
-                  Icons.calendar_month_outlined,
-                  color: primary,
-                  size: 25.sp,
-                ),
-                filled: true,
-                fillColor: fieldBackground,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 17.w,
-                  vertical: 19.h,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(19.r),
-                  borderSide: const BorderSide(color: fieldBorder),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(19.r),
-                  borderSide: const BorderSide(color: fieldBorder),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(19.r),
-                  borderSide: const BorderSide(color: primary, width: 1.5),
-                ),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(height: 9.h),
-        _helperText(helper),
-      ],
-    );
-  }
-
-  Widget _helperText(String text) {
-    return Padding(
-      padding: EdgeInsets.only(left: 7.w),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: 2.h),
-            child: Icon(Icons.info_outline, size: 15.sp, color: muted),
-          ),
-          SizedBox(width: 7.w),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: muted,
-                fontFamily: fontFamily,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
+  Widget _fieldLabel(String text, {bool optional = false}) => Padding(
+    padding: EdgeInsets.only(bottom: 2.h),
+    child: Text(
+      '$text${optional ? ' (Optional)' : ''}',
+      style: TextStyle(
+        color: ink,
+        fontSize: 7.5.sp,
+        fontWeight: FontWeight.w600,
       ),
-    );
-  }
+    ),
+  );
 
-  Future<void> _pickDate(
-    BuildContext context,
-    TextEditingController dateController,
-  ) async {
-    final now = DateTime.now();
-    final initialDate = DateTime.tryParse(dateController.text) ?? now;
+  Widget _input(
+    TextEditingController c,
+    String hint,
+    IconData icon, {
+    String? Function(String?)? validator,
+    TextInputType keyboardType = TextInputType.text,
+    TextCapitalization capitalization = TextCapitalization.none,
+    List<TextInputFormatter>? formatters,
+  }) => TextFormField(
+    controller: c,
+    validator: validator,
+    keyboardType: keyboardType,
+    textCapitalization: capitalization,
+    inputFormatters: formatters,
+    style: _textStyle(),
+    decoration: _decoration(hint, icon),
+  );
 
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: primary,
-              onPrimary: Colors.white,
-              onSurface: dark,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
+  Widget _readonly(String value, IconData icon) => InputDecorator(
+    decoration: _decoration(value, icon),
+    child: Text(value, style: _textStyle()),
+  );
 
-    if (picked != null) {
-      dateController.text =
-          '${picked.year.toString().padLeft(4, '0')}-'
-          '${picked.month.toString().padLeft(2, '0')}-'
-          '${picked.day.toString().padLeft(2, '0')}';
-    }
-  }
+  Widget _dropdown(TextEditingController c, String value, IconData icon) =>
+      DropdownButtonFormField<String>(
+        initialValue: c.text.isEmpty ? null : c.text,
+        isExpanded: true,
+        items: [DropdownMenuItem(value: value, child: Text(value))],
+        onChanged: (v) => c.text = v ?? value,
+        style: _textStyle(),
+        decoration: _decoration(value, icon),
+      );
 
-  void _resetForm() {
-    controller.chitNameController.clear();
-    controller.amountController.clear();
-    controller.membersController.clear();
-    controller.durationController.text = '12';
-    controller.startDateController.clear();
-    controller.endDateController.clear();
-    controller.beforeLiftController.clear();
-    controller.afterLiftController.clear();
-    controller.formKey.currentState?.reset();
-  }
+  InputDecoration _decoration(String hint, [IconData? icon]) => InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(color: muted, fontSize: 7.5.sp),
+    prefixIcon: icon == null ? null : Icon(icon, color: muted, size: 11.sp),
+    prefixIconConstraints: BoxConstraints(minWidth: 25.w),
+    isDense: true,
+    filled: true,
+    fillColor: field,
+    contentPadding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 6.h),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(5.r),
+      borderSide: const BorderSide(color: line),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(5.r),
+      borderSide: const BorderSide(color: line),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(5.r),
+      borderSide: const BorderSide(color: teal),
+    ),
+  );
+
+  Widget _note(String text) => Padding(
+    padding: EdgeInsets.only(left: 2.w, bottom: 2.h),
+    child: Text(
+      text,
+      style: TextStyle(color: muted, fontSize: 6.5.sp),
+    ),
+  );
+  TextStyle _textStyle() =>
+      TextStyle(color: ink, fontSize: 8.sp, fontWeight: FontWeight.w500);
+  String? Function(String?) _required(String message) =>
+      (value) => value == null || value.trim().isEmpty ? message : null;
+  String? Function(String?) _positive(String label) =>
+      (value) =>
+          (double.tryParse(value?.replaceAll(',', '').trim() ?? '') ?? 0) <= 0
+          ? 'Enter a valid $label'
+          : null;
+  static final _amountFormatter = FilteringTextInputFormatter.allow(
+    RegExp(r'[0-9,.]'),
+  );
 }

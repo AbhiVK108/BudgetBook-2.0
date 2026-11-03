@@ -1,34 +1,39 @@
-
 import 'dart:convert';
 
 import 'package:budget_book_2026/app/core/services/api_services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class PostExpenseController extends GetxController {
-  // API SERVICE
-  final ApiService apiService = ApiService();
+  PostExpenseController({ApiService? apiService})
+    : apiService = apiService ?? ApiService();
 
-  final String categoryurl =
-      'https://budgetbook.in/api/api/categories';
+  final ApiService apiService;
 
-  final String url =
-      'https://budgetbook.in/api/api/expense';
+  String get categoryUrl => '${ApiService.categoriesUrl}?type=expense';
 
   // CATEGORIES
   final categories = <Map<String, dynamic>>[].obs;
 
   final selectedIndex = (-1).obs;
   final selectedCategoryId = RxnString();
+  final accounts = <Map<String, dynamic>>[].obs;
+  final isLoadingAccounts = false.obs;
+  final selectedSourceAccountUuid = RxnString();
 
   final isLoadingCategories = false.obs;
+  final isCreatingCategory = false.obs;
   final isLoading = false.obs;
 
   // FORM CONTROLLERS
   final amountController = TextEditingController();
   final noteController = TextEditingController();
+  final counterpartyController = TextEditingController();
 
   final selectedDate = ''.obs;
+  String? _pendingExpenseIdempotencyKey;
+  String? _pendingExpenseRequestBody;
 
   @override
   void onInit() {
@@ -36,6 +41,7 @@ class PostExpenseController extends GetxController {
 
     selectedDate.value = _formatDate(DateTime.now());
     getExpenseCategories();
+    getSourceAccounts();
   }
 
   // GET ACTIVE EXPENSE CATEGORIES
@@ -43,20 +49,15 @@ class PostExpenseController extends GetxController {
     try {
       isLoadingCategories.value = true;
 
-      final response = await apiService.get(categoryurl);
-
-      debugPrint('Category Status: ${response.statusCode}');
-      debugPrint('Category Response: ${response.body}');
+      final response = await apiService.get(categoryUrl);
 
       if (response.statusCode == 401) {
         showError('Session expired. Please login again.');
         return;
       }
 
-      if (response.statusCode != 200) {
-        showError(
-          'Unable to fetch categories (${response.statusCode})',
-        );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        showError('Unable to fetch expense categories.');
         return;
       }
 
@@ -66,107 +67,184 @@ class PostExpenseController extends GetxController {
       }
 
       final decoded = jsonDecode(response.body);
-
-      if (decoded is! Map || decoded['data'] is! List) {
-        categories.clear();
-        showError('Invalid categories response');
-        return;
+      final rawData = decoded is Map ? decoded['data'] : null;
+      final List<dynamic>? data = rawData is List
+          ? rawData
+          : rawData is Map && rawData['items'] is List
+          ? rawData['items'] as List<dynamic>
+          : null;
+      if (decoded is! Map || data == null) {
+        throw const FormatException('Invalid expense categories response.');
       }
-
-      final List<dynamic> data = decoded['data'];
 
       final expenseCategories = data
           .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
+          .map(Map<String, dynamic>.from)
           .where((category) {
-        final type = category['categoryType']
-            ?.toString()
-            .toLowerCase()
-            .trim();
-
-        final status = category['status']?.toString().trim();
-
-        return type == 'expense' && status == '1';
-      }).toList();
+            final type =
+                (category['category_type'] ??
+                        category['categoryType'] ??
+                        category['type'])
+                    ?.toString()
+                    .trim()
+                    .toLowerCase();
+            final status = category['status']?.toString().trim().toLowerCase();
+            final uuid = (category['uuid'] ?? category['category_uuid'])
+                ?.toString()
+                .trim();
+            return (type == null || type == 'expense') &&
+                uuid != null &&
+                uuid.isNotEmpty &&
+                (status == null || status == '1' || status == 'active');
+          })
+          .toList();
 
       categories.assignAll(expenseCategories);
 
       selectedIndex.value = -1;
       selectedCategoryId.value = null;
-
-      debugPrint('Expense Categories: ${categories.length}');
     } catch (e) {
-      debugPrint('Get Categories Error: $e');
-      showError('Unable to load expense categories');
+      debugPrint('Expense category load failed: ${e.runtimeType}');
+      showError('Unable to load expense categories.');
     } finally {
       isLoadingCategories.value = false;
     }
+  }
+
+  Future<Map<String, dynamic>?> createExpenseCategory({
+    required String name,
+    required String icon,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty || isCreatingCategory.value) return null;
+
+    isCreatingCategory.value = true;
+    try {
+      final response = await apiService.postCategory({
+        'name': trimmedName,
+        'type': 'expense',
+        'icon': icon,
+        'sort_order': 100,
+      });
+      final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+      final payload = decoded is Map
+          ? Map<String, dynamic>.from(decoded)
+          : <String, dynamic>{};
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          payload['success'] != true ||
+          payload['data'] is! Map) {
+        final message =
+            payload['message']?.toString() ??
+            'Unable to create expense category.';
+        showError(message);
+        return null;
+      }
+
+      final category = Map<String, dynamic>.from(payload['data'] as Map);
+      final uuid = category['uuid']?.toString().trim();
+      if (uuid == null || uuid.isEmpty) {
+        showError('The server did not return a valid category.');
+        return null;
+      }
+
+      final existingIndex = categories.indexWhere(
+        (item) => item['uuid']?.toString() == uuid,
+      );
+      if (existingIndex >= 0) {
+        categories[existingIndex] = category;
+        selectCategory(existingIndex);
+      } else {
+        categories.add(category);
+        selectCategory(categories.length - 1);
+      }
+      return category;
+    } on FormatException {
+      showError('The server returned an invalid category response.');
+      return null;
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Expense] Category creation failed: ${error.runtimeType}: $error',
+        );
+        debugPrintStack(stackTrace: stackTrace);
+      }
+      showError('Unable to create expense category. Please try again.');
+      return null;
+    } finally {
+      isCreatingCategory.value = false;
+    }
+  }
+
+  Future<void> getSourceAccounts() async {
+    isLoadingAccounts.value = true;
+    try {
+      final response = await apiService.getAccounts();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        showError('Unable to fetch bank accounts.');
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+      final rawData = decoded is Map ? decoded['data'] : null;
+      final List<dynamic>? data = rawData is List
+          ? rawData
+          : rawData is Map && rawData['items'] is List
+          ? rawData['items'] as List<dynamic>
+          : null;
+      if (decoded is! Map || data == null) {
+        throw const FormatException('Invalid bank accounts response.');
+      }
+
+      accounts.assignAll(
+        data.whereType<Map>().map(Map<String, dynamic>.from).where((account) {
+          final uuid = (account['uuid'] ?? account['account_uuid'])
+              ?.toString()
+              .trim();
+          return uuid != null && uuid.isNotEmpty;
+        }),
+      );
+      if (accounts.length == 1) selectSourceAccount(accounts.first);
+    } catch (error) {
+      debugPrint('Expense account load failed: ${error.runtimeType}');
+      showError('Unable to load bank accounts.');
+    } finally {
+      isLoadingAccounts.value = false;
+    }
+  }
+
+  void selectSourceAccount(Map<String, dynamic> account) {
+    selectedSourceAccountUuid.value =
+        (account['uuid'] ?? account['account_uuid'])?.toString();
   }
 
   // SELECT CATEGORY
   void selectCategory(int index) {
     if (index < 0 || index >= categories.length) return;
 
-    final id = categories[index]['id'];
+    final id = categories[index]['uuid'] ?? categories[index]['category_uuid'];
 
     if (id == null || id.toString().isEmpty) {
-      showError('Invalid category ID');
+      showError('Invalid expense category.');
       return;
     }
 
     selectedIndex.value = index;
     selectedCategoryId.value = id.toString();
-
-    debugPrint(
-      'Selected Category: ${categories[index]['categoryName']}',
-    );
-    debugPrint('Selected Category ID: $id');
   }
 
-  // FORMAT DATE AS DD-MM-YYYY
+  // Keep the selected date in the YYYY-MM-DD format expected by the API.
   String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
+    final year = date.year.toString().padLeft(4, '0');
     final month = date.month.toString().padLeft(2, '0');
-
-    return '$day-$month-${date.year}';
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
   }
 
-  // PARSE DD-MM-YYYY
+  // PARSE API DATE
   DateTime? _parseDate(String date) {
-    try {
-      final parts = date.split('-');
-
-      if (parts.length != 3) return null;
-
-      final day = int.parse(parts[0]);
-      final month = int.parse(parts[1]);
-      final year = int.parse(parts[2]);
-
-      final parsed = DateTime(year, month, day);
-
-      if (parsed.day != day ||
-          parsed.month != month ||
-          parsed.year != year) {
-        return null;
-      }
-
-      return parsed;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  // FORMAT DATE FOR API
-  String _formatApiDate(DateTime date) {
-    final year = date.year.toString();
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    final second = date.second.toString().padLeft(2, '0');
-
-    return '$year-$month-$day $hour:$minute:$second';
+    return DateTime.tryParse(date.trim());
   }
 
   // PICK DATE
@@ -185,11 +263,12 @@ class PostExpenseController extends GetxController {
     }
   }
 
-  // SAVE EXPENSE
-  Future<void> savedExpense() async {
+  Future<void> saveExpense() async {
     final amountText = amountController.text.trim();
     final description = noteController.text.trim();
+    final counterparty = counterpartyController.text.trim();
     final categoryId = selectedCategoryId.value;
+    final sourceAccountUuid = selectedSourceAccountUuid.value;
 
     // VALIDATE AMOUNT
     if (amountText.isEmpty) {
@@ -199,22 +278,29 @@ class PostExpenseController extends GetxController {
 
     final parsedAmount = double.tryParse(amountText);
 
-    if (parsedAmount == null ||
-        !parsedAmount.isFinite ||
-        parsedAmount <= 0) {
+    if (parsedAmount == null || !parsedAmount.isFinite || parsedAmount <= 0) {
       showError('Please enter a valid amount');
       return;
     }
 
-    // VALIDATE DESCRIPTION
+    // VALIDATE COUNTERPARTY AND DESCRIPTION
+    if (counterparty.isEmpty) {
+      showError('Please enter the counterparty.');
+      return;
+    }
+
     if (description.isEmpty) {
       showError('Please enter a description');
       return;
     }
 
-    // VALIDATE CATEGORY
     if (categoryId == null || categoryId.isEmpty) {
-      showError('Please select a category');
+      showError('Please select an expense category.');
+      return;
+    }
+
+    if (sourceAccountUuid == null || sourceAccountUuid.isEmpty) {
+      showError('Please select a source bank account.');
       return;
     }
 
@@ -223,66 +309,71 @@ class PostExpenseController extends GetxController {
     try {
       isLoading.value = true;
 
-      final parsedDate =
-          _parseDate(selectedDate.value) ?? DateTime.now();
-
-      final expenseDate = _formatApiDate(parsedDate);
-
-      // FORM DATA
-      //
-      // Confirm these field names with your expense API.
-      final Map<String, String> requestBody = {
-        'categoryId': categoryId,
-        'amount': parsedAmount.toString(),
-        'expenseDate': expenseDate,
-        'description': description,
-        'receipt': '',
-      };
-
-      debugPrint(
-        'Expense Request: ${jsonEncode(requestBody)}',
-      );
-
-      // POST USING APISERVICE
-      final response = await apiService.postFormData(
-        url,
-        requestBody,
-      );
-
-      debugPrint('Expense Status: ${response.statusCode}');
-      debugPrint('Expense Response: ${response.body}');
-
-      dynamic responseData;
-
-      try {
-        if (response.body.isNotEmpty) {
-          responseData = jsonDecode(response.body);
-        }
-      } catch (_) {
-        responseData = null;
+      final parsedDate = _parseDate(selectedDate.value);
+      if (parsedDate == null) {
+        showError('Please select a valid transaction date.');
+        return;
       }
 
-      final httpSuccess =
-          response.statusCode >= 200 &&
-          response.statusCode < 300;
+      final requestBody = <String, dynamic>{
+        'amount': parsedAmount.toStringAsFixed(2),
+        'transaction_date': _formatDate(parsedDate),
+        'source_account_uuid': sourceAccountUuid,
+        'category_uuid': categoryId,
+        'counterparty': counterparty,
+        'description': description,
+      };
+      final encodedRequestBody = jsonEncode(requestBody);
+      if (_pendingExpenseIdempotencyKey == null ||
+          _pendingExpenseRequestBody != encodedRequestBody) {
+        _pendingExpenseIdempotencyKey = ApiService.createIdempotencyKey();
+        _pendingExpenseRequestBody = encodedRequestBody;
+      }
 
-      final apiStatus = responseData is Map
-          ? responseData['status']
-              ?.toString()
-              .toLowerCase()
-              .trim()
+      if (kDebugMode) {
+        debugPrint('[Expense] POST ${ApiService.expenseTransactionsUrl}');
+        debugPrint('[Expense] Request body: $encodedRequestBody');
+      }
+
+      final response = await apiService.postExpense(
+        requestBody,
+        idempotencyKey: _pendingExpenseIdempotencyKey!,
+      );
+      if (kDebugMode) {
+        debugPrint('[Expense] HTTP ${response.statusCode}');
+        debugPrint('[Expense] Response body: ${response.body}');
+      }
+
+      dynamic decoded;
+      if (response.body.isNotEmpty) {
+        decoded = jsonDecode(response.body);
+      }
+      final payload = decoded is Map
+          ? Map<String, dynamic>.from(decoded)
+          : <String, dynamic>{};
+      final data = payload['data'];
+      final transaction = data is Map ? data['transaction'] : null;
+      final transactionUuid = transaction is Map
+          ? transaction['uuid']?.toString().trim()
           : null;
+      final transactionType = transaction is Map
+          ? transaction['type']?.toString().trim().toLowerCase()
+          : null;
+      final confirmedSuccess =
+          response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          payload['success'] == true &&
+          transactionUuid != null &&
+          transactionUuid.isNotEmpty &&
+          transactionType == 'expense';
 
-      final apiError =
-          apiStatus == 'error' || apiStatus == 'failed';
-
-      if (httpSuccess && !apiError) {
+      if (confirmedSuccess) {
+        _pendingExpenseIdempotencyKey = null;
+        _pendingExpenseRequestBody = null;
         Get.snackbar(
           'Success',
-          responseData is Map
-              ? responseData['message']?.toString() ??
-                  'Expense saved successfully'
-              : 'Expense saved successfully',
+          payload['message']?.toString() ??
+              'Expense transaction created successfully.',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -290,30 +381,68 @@ class PostExpenseController extends GetxController {
 
         amountController.clear();
         noteController.clear();
+        counterpartyController.clear();
 
         selectedIndex.value = -1;
         selectedCategoryId.value = null;
+        selectedSourceAccountUuid.value = null;
         selectedDate.value = _formatDate(DateTime.now());
 
-        Get.back();
+        Get.back(result: true);
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        showError(
+          'Your session does not allow this action. Please sign in again.',
+        );
       } else {
-        String message = 'Unable to save expense';
-
-        if (responseData is Map) {
-          message =
-              responseData['message']?.toString() ??
-              responseData['error']?.toString() ??
-              message;
+        if (response.statusCode >= 400 && response.statusCode < 500) {
+          _pendingExpenseIdempotencyKey = null;
+          _pendingExpenseRequestBody = null;
         }
-
-        showError('$message (${response.statusCode})');
+        final message =
+            payload['message']?.toString() ??
+            payload['error']?.toString() ??
+            (response.statusCode >= 200 && response.statusCode < 300
+                ? 'The server returned an unexpected expense response.'
+                : 'Unable to save expense. Please try again.');
+        final details = _formatBackendErrors(payload['errors']);
+        showError(details.isEmpty ? message : '$message\n$details');
       }
-    } catch (e) {
-      debugPrint('Save Expense Error: $e');
+    } on FormatException {
+      showError('The server returned an invalid expense response.');
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('[Expense] Request failed: ${error.runtimeType}: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
       showError('Unable to connect to the server');
     } finally {
       isLoading.value = false;
     }
+  }
+
+  String _formatBackendErrors(dynamic errors) {
+    if (errors is Map) {
+      return errors.entries
+          .map((entry) {
+            final value = entry.value;
+            final detail = value is List ? value.join(', ') : value.toString();
+            return '${entry.key}: $detail';
+          })
+          .join('\n');
+    }
+    if (errors is List) {
+      return errors
+          .map((error) {
+            if (error is Map) {
+              final field = error['field']?.toString();
+              final message = error['message']?.toString();
+              if (field != null && message != null) return '$field: $message';
+            }
+            return error.toString();
+          })
+          .join('\n');
+    }
+    return '';
   }
 
   // SHOW ERROR
@@ -336,6 +465,7 @@ class PostExpenseController extends GetxController {
   void onClose() {
     amountController.dispose();
     noteController.dispose();
+    counterpartyController.dispose();
     super.onClose();
   }
 }

@@ -1,6 +1,6 @@
-
 import 'dart:convert';
 
+import 'package:budget_book_2026/app/core/constants/api_endpoints.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -21,8 +21,18 @@ class IndivPostIncomeController extends GetxController {
     final date = selectedDate.value;
 
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
 
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
@@ -49,9 +59,7 @@ class IndivPostIncomeController extends GetxController {
       return;
     }
 
-    final amount = double.tryParse(
-      amountController.text.trim(),
-    );
+    final amount = double.tryParse(amountController.text.trim());
 
     if (amount == null || amount <= 0) {
       Get.snackbar('Error', 'Please enter a valid amount');
@@ -69,9 +77,7 @@ class IndivPostIncomeController extends GetxController {
     update();
 
     try {
-      final url = Uri.parse(
-        'https://budgetbook.in/api/api/income',
-      );
+      final url = Uri.parse(ApiEndpoints.legacyIncomeUrl);
 
       final date = selectedDate.value;
       final formattedDate =
@@ -102,8 +108,7 @@ class IndivPostIncomeController extends GetxController {
           responseData['status'] == 'success') {
         Get.snackbar(
           'Success',
-          responseData['message'] ??
-              'Income saved successfully',
+          responseData['message'] ?? 'Income saved successfully',
         );
 
         amountController.clear();
@@ -114,16 +119,12 @@ class IndivPostIncomeController extends GetxController {
         Get.snackbar(
           'Failed',
           responseData is Map
-              ? (responseData['message']?.toString() ??
-                  'Unable to save income')
+              ? (responseData['message']?.toString() ?? 'Unable to save income')
               : 'Unable to save income',
         );
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Something went wrong: $e',
-      );
+      Get.snackbar('Error', 'Something went wrong: $e');
     } finally {
       isLoading = false;
       update();
@@ -137,4 +138,3 @@ class IndivPostIncomeController extends GetxController {
     super.onClose();
   }
 }
-

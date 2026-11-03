@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:budget_book_2026/app/core/constants/api_endpoints.dart';
 import 'package:budget_book_2026/app/core/services/api_services.dart';
 
 class CategoriesController extends GetxController {
@@ -16,8 +17,7 @@ class CategoriesController extends GetxController {
   // API URL
   // =========================
 
-  final String categoryUrl =
-      "https://budgetbook.in/api/api/categories";
+  final String categoryUrl = ApiEndpoints.categoriesUrl;
 
   // =========================
   // STATE
@@ -61,27 +61,22 @@ class CategoriesController extends GetxController {
 
       final response = await apiService.get(categoryUrl);
 
-      debugPrint(
-        "Category Status Code: ${response.statusCode}",
-      );
+      debugPrint("Category Status Code: ${response.statusCode}");
 
-      debugPrint(
-        "Category Response: ${response.body}",
-      );
+      debugPrint("Category Response: ${response.body}");
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
 
         // Check API data
-        if (responseData["data"] is List) {
-          categories.value =
-              List<Map<String, dynamic>>.from(
-            responseData["data"],
+        final dataValue = responseData["data"];
+        final data = dataValue is Map ? dataValue["categories"] : dataValue;
+        if (data is List) {
+          categories.value = List<Map<String, dynamic>>.from(
+            data.whereType<Map>().map(Map<String, dynamic>.from),
           );
 
-          debugPrint(
-            "Categories Loaded: ${categories.length}",
-          );
+          debugPrint("Categories Loaded: ${categories.length}");
         } else {
           categories.clear();
 
@@ -92,11 +87,11 @@ class CategoriesController extends GetxController {
           );
         }
       } else if (response.statusCode == 401) {
-        Get.snackbar(
-          "Session Expired",
-          "Please login again",
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        // Get.snackbar(
+        //   "Session Expired",
+        //   "Please login again",
+        //   snackPosition: SnackPosition.BOTTOM,
+        // );
       } else {
         Get.snackbar(
           "Error",
@@ -105,9 +100,7 @@ class CategoriesController extends GetxController {
         );
       }
     } catch (e) {
-      debugPrint(
-        "Category Error: $e",
-      );
+      debugPrint("Category Error: $e");
 
       Get.snackbar(
         "Error",
@@ -124,14 +117,14 @@ class CategoriesController extends GetxController {
   // =========================
 
   List<Map<String, dynamic>> get filteredCategories {
-    final type = isIncome.value
-        ? "income"
-        : "expense";
+    final type = isIncome.value ? "income" : "expense";
 
     return categories
         .where(
           (category) =>
-              category["categoryType"]
+              (category["categoryType"] ??
+                      category["category_type"] ??
+                      category["type"])
                   ?.toString()
                   .toLowerCase() ==
               type,
@@ -140,7 +133,10 @@ class CategoriesController extends GetxController {
           (category) => {
             "id": category["id"]?.toString() ?? "",
             "title":
-                category["categoryName"]?.toString() ?? "",
+                category["categoryName"] ??
+                category["category_name"] ??
+                category["name"] ??
+                "",
             "amount": "₹ 0",
           },
         )
@@ -154,5 +150,47 @@ class CategoriesController extends GetxController {
   Future<void> refreshCategories() async {
     await getCategories();
   }
-}
 
+  Future<bool> createCategory({
+    required String name,
+    required String type,
+    String icon = 'category',
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty || isLoading.value) return false;
+
+    try {
+      isLoading.value = true;
+      final response = await apiService.postCategory({
+        'name': trimmedName,
+        'type': type.toLowerCase(),
+        'icon': icon,
+        'sort_order': 100,
+      });
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        Get.snackbar(
+          'Unable to add category',
+          'Please check your connection and try again.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return false;
+      }
+      await getCategories();
+      Get.snackbar(
+        'Category added',
+        '$trimmedName is now available.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return true;
+    } catch (_) {
+      Get.snackbar(
+        'Unable to add category',
+        'Please check your connection and try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+}

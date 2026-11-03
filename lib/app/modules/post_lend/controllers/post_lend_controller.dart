@@ -1,32 +1,40 @@
-
 import 'dart:convert';
 
+import 'package:budget_book_2026/app/core/constants/api_endpoints.dart';
+import 'package:budget_book_2026/app/core/services/api_services.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:budget_book_2026/app/core/services/api_services.dart';
-
 class PostLendController extends GetxController {
-  final ApiService apiService = ApiService();
+  PostLendController({ApiService? apiService})
+    : apiService = apiService ?? ApiService();
 
-  final String url = 'https://budgetbook.in/api/api/debit';
+  final ApiService apiService;
+
+  final String url = ApiEndpoints.legacyDebitUrl;
+  final categories = <Map<String, dynamic>>[].obs;
+  final accounts = <Map<String, dynamic>>[].obs;
+  final isLoadingCategories = false.obs;
+  final isLoadingAccounts = false.obs;
+  final categoryLoadError = ''.obs;
+  final accountLoadError = ''.obs;
+  final selectedInterestCategoryUuid = RxnString();
+  final selectedSourceAccountUuid = RxnString();
+  final interestMethod = 'fixed'.obs;
+  String? _pendingLendingIdempotencyKey;
+  String? _pendingLendingRequestBody;
 
   // Form controllers
-  final TextEditingController personController =
-      TextEditingController();
+  final TextEditingController personController = TextEditingController();
 
-  final TextEditingController phoneController =
-      TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
 
-  final TextEditingController amountController =
-      TextEditingController();
+  final TextEditingController amountController = TextEditingController();
 
-  final TextEditingController interestController =
-      TextEditingController();
+  final TextEditingController interestController = TextEditingController();
 
-  final TextEditingController descriptionController =
-      TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
   // Selected dates
   final Rx<DateTime?> giveDate = Rx<DateTime?>(null);
@@ -40,10 +48,8 @@ class PostLendController extends GetxController {
   // Format date as YYYY-MM-DD
   String formatDate(DateTime date) {
     final String year = date.year.toString();
-    final String month =
-        date.month.toString().padLeft(2, '0');
-    final String day =
-        date.day.toString().padLeft(2, '0');
+    final String month = date.month.toString().padLeft(2, '0');
+    final String day = date.day.toString().padLeft(2, '0');
 
     return '$year-$month-$day';
   }
@@ -52,21 +58,158 @@ class PostLendController extends GetxController {
   void onInit() {
     super.onInit();
     final argument = Get.arguments;
-    if (argument is! Map) return;
+    if (argument is Map) {
+      final lend = Map<String, dynamic>.from(argument);
+      editingLendId = lend['id'] ?? lend['debitId'] ?? lend['debit_id'];
+      isEditMode.value = true;
+      personController.text =
+          (lend['receiveFrom'] ?? lend['givenTo'] ?? lend['person'] ?? '')
+              .toString();
+      phoneController.text = (lend['phone'] ?? '').toString();
+      amountController.text = (lend['amount'] ?? '').toString();
+      interestController.text =
+          (lend['rateOfInterest'] ?? lend['interest'] ?? '').toString();
+      descriptionController.text = (lend['description'] ?? '').toString();
+      giveDate.value = _parseDate(lend['receiveDate'] ?? lend['giveDate']);
+      returnDate.value = _parseDate(
+        lend['returnDate'] ?? lend['repaymentDate'],
+      );
+    }
+    loadIncomeCategories();
+    loadSourceAccounts();
+  }
 
-    final lend = Map<String, dynamic>.from(argument);
-    editingLendId = lend['id'] ?? lend['debitId'] ?? lend['debit_id'];
-    isEditMode.value = true;
-    personController.text =
-        (lend['receiveFrom'] ?? lend['givenTo'] ?? lend['person'] ?? '')
-            .toString();
-    phoneController.text = (lend['phone'] ?? '').toString();
-    amountController.text = (lend['amount'] ?? '').toString();
-    interestController.text =
-        (lend['rateOfInterest'] ?? lend['interest'] ?? '').toString();
-    descriptionController.text = (lend['description'] ?? '').toString();
-    giveDate.value = _parseDate(lend['receiveDate'] ?? lend['giveDate']);
-    returnDate.value = _parseDate(lend['returnDate'] ?? lend['repaymentDate']);
+  Future<void> loadIncomeCategories() async {
+    isLoadingCategories.value = true;
+    categoryLoadError.value = '';
+    try {
+      final uri = Uri.parse(
+        ApiService.categoriesUrl,
+      ).replace(queryParameters: {'type': 'income'});
+      final response = await apiService.get(uri.toString());
+      final decoded = _decodeResponse(response);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw FormatException(
+          _responseMessage(decoded, 'Unable to load income categories.'),
+        );
+      }
+      final dataValue = decoded['data'];
+      final List<dynamic>? items = dataValue is List
+          ? dataValue
+          : dataValue is Map && dataValue['items'] is List
+          ? dataValue['items'] as List<dynamic>
+          : null;
+      if (items == null) {
+        throw const FormatException('Unexpected income categories response.');
+      }
+      categories.assignAll(
+        items.whereType<Map>().map(Map<String, dynamic>.from).where((item) {
+          final uuid = (item['uuid'] ?? item['category_uuid'])
+              ?.toString()
+              .trim();
+          final type =
+              (item['category_type'] ?? item['categoryType'] ?? item['type'])
+                  ?.toString()
+                  .trim()
+                  .toLowerCase();
+          final status = item['status']?.toString().trim().toLowerCase();
+          return uuid != null &&
+              uuid.isNotEmpty &&
+              (type == null || type == 'income') &&
+              (status == null || status == '1' || status == 'active');
+        }),
+      );
+      if (categories.length == 1) {
+        selectedInterestCategoryUuid.value =
+            (categories.first['uuid'] ?? categories.first['category_uuid'])
+                ?.toString();
+      }
+    } catch (error) {
+      categoryLoadError.value = error is FormatException
+          ? error.message
+          : 'Failed to load income categories. Please try again.';
+      debugPrint('LENDING CATEGORY LOAD ERROR: $error');
+    } finally {
+      isLoadingCategories.value = false;
+    }
+  }
+
+  Future<void> loadSourceAccounts() async {
+    isLoadingAccounts.value = true;
+    accountLoadError.value = '';
+    try {
+      final response = await apiService.getAccounts();
+      final decoded = _decodeResponse(response);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw FormatException(
+          _responseMessage(decoded, 'Unable to load accounts.'),
+        );
+      }
+      final dataValue = decoded['data'];
+      final List<dynamic>? items = dataValue is List
+          ? dataValue
+          : dataValue is Map && dataValue['items'] is List
+          ? dataValue['items'] as List<dynamic>
+          : null;
+      if (items == null) {
+        throw const FormatException('Unexpected accounts response.');
+      }
+      accounts.assignAll(
+        items.whereType<Map>().map(Map<String, dynamic>.from).where((item) {
+          final uuid = (item['uuid'] ?? item['account_uuid'])
+              ?.toString()
+              .trim();
+          final status = item['status']?.toString().trim().toLowerCase();
+          return uuid != null &&
+              uuid.isNotEmpty &&
+              (status == null || status == 'active' || status == '1');
+        }),
+      );
+      if (accounts.length == 1) {
+        selectedSourceAccountUuid.value =
+            (accounts.first['uuid'] ?? accounts.first['account_uuid'])
+                ?.toString();
+      }
+    } catch (error) {
+      accountLoadError.value = error is FormatException
+          ? error.message
+          : 'Failed to load accounts. Please try again.';
+      debugPrint('LENDING ACCOUNT LOAD ERROR: $error');
+    } finally {
+      isLoadingAccounts.value = false;
+    }
+  }
+
+  String categoryUuid(Map<String, dynamic> category) =>
+      (category['uuid'] ?? category['category_uuid'])?.toString() ?? '';
+
+  String categoryName(Map<String, dynamic> category) =>
+      (category['name'] ??
+              category['category_name'] ??
+              category['categoryName'])
+          ?.toString() ??
+      'Income category';
+
+  String accountUuid(Map<String, dynamic> account) =>
+      (account['uuid'] ?? account['account_uuid'])?.toString() ?? '';
+
+  String accountName(Map<String, dynamic> account) =>
+      (account['name'] ?? account['account_name'])?.toString() ?? 'Account';
+
+  Map<String, dynamic> _decodeResponse(http.Response response) {
+    if (response.body.isEmpty) {
+      throw const FormatException('Empty response from server.');
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const FormatException('Unexpected server response.');
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  String _responseMessage(Map<String, dynamic> decoded, String fallback) {
+    final message = decoded['message']?.toString().trim();
+    return message == null || message.isEmpty ? fallback : message;
   }
 
   DateTime? _parseDate(dynamic value) {
@@ -109,8 +252,7 @@ class PostLendController extends GetxController {
     giveDate.value = picked;
 
     // Reset return date if it is before the give date.
-    if (returnDate.value != null &&
-        returnDate.value!.isBefore(picked)) {
+    if (returnDate.value != null && returnDate.value!.isBefore(picked)) {
       returnDate.value = null;
 
       _showMessage(
@@ -124,8 +266,7 @@ class PostLendController extends GetxController {
   Future<void> selectReturnDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate:
-          returnDate.value ?? giveDate.value ?? DateTime.now(),
+      initialDate: returnDate.value ?? giveDate.value ?? DateTime.now(),
       firstDate: giveDate.value ?? DateTime(2000),
       lastDate: DateTime(2100),
     );
@@ -151,10 +292,10 @@ class PostLendController extends GetxController {
     }
 
     // Validate phone number
-    if (!RegExp(r'^[0-9]{10}$').hasMatch(phone)) {
+    if (phone.isNotEmpty && !RegExp(r'^[0-9]{10}$').hasMatch(phone)) {
       _showMessage(
         'Invalid Phone',
-        'Please enter a valid 10-digit mobile number.',
+        'Enter a valid 10-digit mobile number, or leave it blank.',
       );
       return;
     }
@@ -179,7 +320,7 @@ class PostLendController extends GetxController {
         interest < 0) {
       _showMessage(
         'Invalid Interest',
-        'Please enter a valid interest rate.',
+        'Please enter a valid fixed interest amount (zero or more).',
       );
       return;
     }
@@ -199,10 +340,24 @@ class PostLendController extends GetxController {
     }
 
     if (repayment.isBefore(give)) {
+      _showMessage('Invalid Date', 'Return date cannot be before give date.');
+      return;
+    }
+
+    if (!isEditMode.value &&
+        (selectedInterestCategoryUuid.value == null ||
+            selectedInterestCategoryUuid.value!.isEmpty)) {
       _showMessage(
-        'Invalid Date',
-        'Return date cannot be before give date.',
+        'Required',
+        'Please select an income category for interest.',
       );
+      return;
+    }
+
+    if (!isEditMode.value &&
+        (selectedSourceAccountUuid.value == null ||
+            selectedSourceAccountUuid.value!.isEmpty)) {
+      _showMessage('Required', 'Please select the source account.');
       return;
     }
 
@@ -218,67 +373,76 @@ class PostLendController extends GetxController {
       isLoading.value = true;
 
       // All values are strings for multipart form-data.
-      final Map<String, String> body = {
-        'phone': phone,
-        'receiveFrom': person,
-        'amount': amount.toString(),
-        'receiveDate': formatDate(give),
-        'rateOfInterest': interest.toString(),
-        'returnDate': formatDate(repayment),
-        'description': descriptionController.text.trim(),
-      };
-
-      final requestUrl = isEditMode.value ? '$url/$editingLendId' : url;
-      debugPrint('Lend API URL: $requestUrl');
-      debugPrint('Lend request fields: ${jsonEncode(body)}');
+      final http.Response response;
+      if (isEditMode.value) {
+        final body = <String, dynamic>{
+          'phone': phone,
+          'receiveFrom': person,
+          'amount': amount.toString(),
+          'receiveDate': formatDate(give),
+          'rateOfInterest': interest.toString(),
+          'returnDate': formatDate(repayment),
+          'description': descriptionController.text.trim(),
+        };
+        final requestUrl = '$url/$editingLendId';
+        debugPrint('Legacy lending update URL: $requestUrl');
+        response = await apiService.put(requestUrl, body);
+      } else {
+        final body = <String, dynamic>{
+          'borrower_name': person,
+          'principal_amount': amount.toStringAsFixed(2),
+          'lending_date': formatDate(give),
+          'interest_method': interestMethod.value,
+          'fixed_interest_amount': interest.toStringAsFixed(2),
+          'interest_category_uuid': selectedInterestCategoryUuid.value!,
+          'expected_repayment_date': formatDate(repayment),
+          'source_account_uuid': selectedSourceAccountUuid.value!,
+          'notes': descriptionController.text.trim(),
+          if (phone.isNotEmpty) 'borrower_phone': phone,
+        };
+        final encodedBody = jsonEncode(body);
+        if (_pendingLendingIdempotencyKey == null ||
+            _pendingLendingRequestBody != encodedBody) {
+          _pendingLendingIdempotencyKey = ApiService.createIdempotencyKey();
+          _pendingLendingRequestBody = encodedBody;
+        }
+        debugPrint('Lending API URL: ${ApiService.lendingUrl}');
+        debugPrint('Lending request body: $encodedBody');
+        response = await apiService.postLending(
+          body,
+          idempotencyKey: _pendingLendingIdempotencyKey!,
+        );
+      }
 
       // Send form-data with the saved Bearer token.
-      final http.Response response = isEditMode.value
-          ? await apiService.put(
-              requestUrl,
-              Map<String, dynamic>.from(body),
-            )
-          : await apiService.postFormData(url, body);
-
       debugPrint('Lend API status: ${response.statusCode}');
       debugPrint('Lend API response: ${response.body}');
 
-      dynamic decoded;
-
+      final Map<String, dynamic> decoded;
       try {
-        decoded = response.body.isEmpty &&
-                isEditMode.value &&
-                response.statusCode >= 200 &&
-                response.statusCode < 300
-            ? {'status': 'success'}
-            : jsonDecode(response.body);
-      } on FormatException {
-        _showMessage(
-          'Server Error',
-          'Invalid server response. HTTP ${response.statusCode}.',
-        );
-        return;
-      }
-
-      if (decoded is! Map) {
-        _showMessage(
-          'Server Error',
-          'Unexpected API response format.',
-        );
+        decoded = _decodeResponse(response);
+      } on FormatException catch (error) {
+        _showMessage('Server Error', error.message);
         return;
       }
 
       final String message =
           decoded['message']?.toString() ??
-              'Unable to ${isEditMode.value ? 'update' : 'save'} lending details.';
+          'Unable to ${isEditMode.value ? 'update' : 'save'} lending details.';
 
       final bool success =
           response.statusCode >= 200 &&
           response.statusCode < 300 &&
-          decoded['status']?.toString().toLowerCase() ==
-              'success';
+          (isEditMode.value
+              ? decoded['status']?.toString().toLowerCase() == 'success'
+              : decoded['success'] == true);
 
       if (success) {
+        clearForm();
+        _pendingLendingIdempotencyKey = null;
+        _pendingLendingRequestBody = null;
+
+        Get.back(result: true);
         _showMessage(
           'Success',
           decoded['message']?.toString() ??
@@ -286,12 +450,6 @@ class PostLendController extends GetxController {
                   ? 'Lending details updated.'
                   : 'Lending details saved.'),
         );
-
-        clearForm();
-
-        if (Get.key.currentState?.canPop() ?? false) {
-          Get.back();
-        }
       } else {
         final dynamic errors = decoded['errors'];
         final List<String> details = [];
@@ -299,13 +457,13 @@ class PostLendController extends GetxController {
         if (errors is Map) {
           errors.forEach((key, value) {
             if (value is List) {
-              details.addAll(
-                value.map((item) => item.toString()),
-              );
+              details.addAll(value.map((item) => item.toString()));
             } else {
               details.add(value.toString());
             }
           });
+        } else if (errors is List) {
+          details.addAll(errors.map((item) => item.toString()));
         }
 
         debugPrint('Lend API errors: $errors');
@@ -315,13 +473,22 @@ class PostLendController extends GetxController {
           details.isNotEmpty ? details.join('\n') : message,
         );
       }
+    } on http.ClientException catch (error, stackTrace) {
+      debugPrint('Post lend connection error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      _showMessage(
+        'Connection error',
+        'The server could not confirm this lending. Check your connection '
+            'and try again; your form is unchanged.',
+      );
     } catch (e, stackTrace) {
       debugPrint('Post lend error: $e');
       debugPrintStack(stackTrace: stackTrace);
 
       _showMessage(
         'Error',
-        'Unable to submit lending details. Please try again.',
+        'Unable to submit lending details. Your form is unchanged; please try again.',
       );
     } finally {
       isLoading.value = false;

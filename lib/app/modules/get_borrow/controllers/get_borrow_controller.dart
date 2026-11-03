@@ -1,25 +1,39 @@
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:budget_book_2026/app/core/constants/api_endpoints.dart';
 import 'package:budget_book_2026/app/core/services/api_services.dart';
 
 class GetBorrowController extends GetxController {
-  final ApiService apiService = ApiService();
+  GetBorrowController({
+    ApiService? apiService,
+    Map<String, dynamic>? initialBorrow,
+  }) : apiService = apiService ?? ApiService(),
+       _initialBorrow = initialBorrow;
 
-  final String url = 'https://budgetbook.in/api/api/credit';
+  final ApiService apiService;
+  final Map<String, dynamic>? _initialBorrow;
+  final String url = ApiEndpoints.legacyCreditUrl;
 
   final isLoading = false.obs;
+  final isLoadingRepayments = false.obs;
   final borrows = <Map<String, dynamic>>[].obs;
   final selectedBorrow = <String, dynamic>{}.obs;
   final errorMessage = ''.obs;
+  final repayments = <Map<String, dynamic>>[].obs;
+  final repaymentError = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
+    final argument = _initialBorrow ?? Get.arguments;
+    if (argument is Map) {
+      selectedBorrow.addAll(Map<String, dynamic>.from(argument));
+    }
     fetchBorrows();
+    fetchRepayments();
   }
 
   // ================= RECORD ID =================
@@ -27,7 +41,98 @@ class GetBorrowController extends GetxController {
   dynamic _recordId(Map<String, dynamic> record) {
     return record['id'] ??
         record['creditId'] ??
-        record['credit_id'];
+        record['credit_id'] ??
+        record['uuid'] ??
+        record['borrowing_uuid'];
+  }
+
+  Future<void> fetchRepayments() async {
+    final uuidValue =
+        selectedBorrow['uuid'] ?? selectedBorrow['borrowing_uuid'];
+    final uuid = uuidValue?.toString().trim();
+    if (uuid == null || uuid.isEmpty) {
+      repaymentError.value = 'This borrowing record is missing its UUID.';
+      return;
+    }
+
+    try {
+      isLoadingRepayments.value = true;
+      repaymentError.value = '';
+      final response = await apiService.getBorrowingRepayments(uuid);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw FormatException(
+          _responseMessage(response.body) ??
+              'Failed to fetch repayment history (${response.statusCode}).',
+        );
+      }
+
+      final dynamic decoded;
+      try {
+        decoded = jsonDecode(response.body);
+      } on FormatException {
+        throw const FormatException(
+          'The server returned invalid repayment history.',
+        );
+      }
+      if (decoded is! Map || decoded['success'] != true) {
+        throw FormatException(
+          _responseMessage(response.body) ??
+              'The repayment history response was invalid.',
+        );
+      }
+
+      final items = _repaymentsFromResponse(decoded);
+      if (items == null) {
+        throw const FormatException(
+          'The repayment history response was invalid.',
+        );
+      }
+      repayments.assignAll(items);
+    } on FormatException catch (error) {
+      debugPrint('Fetch borrowing repayment history error: ${error.message}');
+      repaymentError.value = error.message;
+    } catch (error, stackTrace) {
+      debugPrint('Fetch borrowing repayment history error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      repaymentError.value = 'Unable to load repayment history. Please retry.';
+    } finally {
+      isLoadingRepayments.value = false;
+    }
+  }
+
+  List<Map<String, dynamic>>? _repaymentsFromResponse(
+    Map<dynamic, dynamic> response,
+  ) {
+    dynamic data = response['data'] ?? response['repayments'];
+    while (data is Map) {
+      final items =
+          data['items'] ?? data['repayments'] ?? data['repayment_history'];
+      if (items is List) {
+        return items.whereType<Map>().map(Map<String, dynamic>.from).toList();
+      }
+      if (data['data'] is Map || data['data'] is List) {
+        data = data['data'];
+      } else {
+        return null;
+      }
+    }
+    if (data is List) {
+      return data.whereType<Map>().map(Map<String, dynamic>.from).toList();
+    }
+    return null;
+  }
+
+  String? _responseMessage(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map) {
+        final message = decoded['message']?.toString();
+        if (message != null && message.isNotEmpty) return message;
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
   }
 
   Map<String, dynamic>? _findById(dynamic id) {
@@ -65,19 +170,17 @@ class GetBorrowController extends GetxController {
         return;
       }
 
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300) {
+      if (response.statusCode < 200 || response.statusCode >= 300) {
         final message = decoded is Map
-            ? (decoded['message'] ??
-                    'Failed to fetch borrow details.')
-                .toString()
+            ? (decoded['message'] ?? 'Failed to fetch borrow details.')
+                  .toString()
             : 'Failed to fetch borrow details.';
 
         errorMessage.value = response.statusCode == 401
             ? 'Session expired. Please login again.'
             : message;
 
-        Get.snackbar('Error', errorMessage.value);
+        // Get.snackbar('Error', errorMessage.value);
         return;
       }
 
@@ -86,7 +189,8 @@ class GetBorrowController extends GetxController {
       if (decoded is List) {
         records = decoded;
       } else if (decoded is Map) {
-        records = decoded['data'] ??
+        records =
+            decoded['data'] ??
             decoded['credits'] ??
             decoded['credit'] ??
             decoded['records'];
@@ -117,7 +221,7 @@ class GetBorrowController extends GetxController {
       );
 
       // Restore the selected record if possible.
-      final argument = Get.arguments;
+      final argument = _initialBorrow ?? Get.arguments;
 
       if (argument is Map) {
         final passedRecord = Map<String, dynamic>.from(argument);
@@ -155,34 +259,61 @@ class GetBorrowController extends GetxController {
   // ================= DISPLAY FIELDS =================
 
   String get personName =>
-      (selectedBorrow['givenTo'] ?? '').toString();
+      (selectedBorrow['lender_name'] ??
+              selectedBorrow['person_name'] ??
+              selectedBorrow['givenTo'] ??
+              '')
+          .toString();
 
-  String get phone =>
-      (selectedBorrow['phone'] ?? '').toString();
+  String get phone => (selectedBorrow['phone'] ?? '').toString();
 
   String get amount =>
-      (selectedBorrow['amount'] ?? '0').toString();
+      (selectedBorrow['principal_amount'] ?? selectedBorrow['amount'] ?? '0')
+          .toString();
 
   String get interest =>
-      (selectedBorrow['rateOfInterest'] ?? '0').toString();
+      (selectedBorrow['fixed_interest_amount'] ??
+              selectedBorrow['interest_amount'] ??
+              selectedBorrow['rateOfInterest'] ??
+              '0')
+          .toString();
 
   String get interestAmount =>
-      (selectedBorrow['interestAmount'] ?? '0').toString();
+      (selectedBorrow['fixed_interest_amount'] ??
+              selectedBorrow['interestAmount'] ??
+              '0')
+          .toString();
 
   String get paidAmount =>
-      (selectedBorrow['paidAmount'] ?? '0').toString();
+      (selectedBorrow['principal_repaid'] ??
+              selectedBorrow['paidAmount'] ??
+              '0')
+          .toString();
 
   String get dueAmount =>
-      (selectedBorrow['dueAmount'] ?? '0').toString();
+      (selectedBorrow['total_outstanding'] ??
+              selectedBorrow['principal_outstanding'] ??
+              selectedBorrow['dueAmount'] ??
+              '0')
+          .toString();
 
   String get receiveDate =>
-      (selectedBorrow['givenDate'] ?? '').toString();
+      (selectedBorrow['borrowing_date'] ?? selectedBorrow['givenDate'] ?? '')
+          .toString();
 
   String get returnDate =>
-      (selectedBorrow['returnDate'] ?? '').toString();
+      (selectedBorrow['expected_repayment_date'] ??
+              selectedBorrow['returnDate'] ??
+              '')
+          .toString();
 
   String get description =>
-      (selectedBorrow['description'] ?? '').toString();
+      (selectedBorrow['notes'] ?? selectedBorrow['description'] ?? '')
+          .toString();
+
+  void applyRepaymentAgreement(Map<String, dynamic> agreement) {
+    selectedBorrow.assignAll({...selectedBorrow, ...agreement});
+  }
 
   // ================= UPDATE BORROW =================
 
@@ -198,10 +329,7 @@ class GetBorrowController extends GetxController {
     final id = _recordId(selectedBorrow);
 
     if (id == null) {
-      Get.snackbar(
-        'Unable to update',
-        'The selected record has no ID.',
-      );
+      Get.snackbar('Unable to update', 'The selected record has no ID.');
       return false;
     }
 
@@ -221,10 +349,7 @@ class GetBorrowController extends GetxController {
         givenDateValue == null ||
         returnDateValue == null ||
         returnDateValue.isBefore(givenDateValue)) {
-      Get.snackbar(
-        'Invalid details',
-        'Check the borrow details and dates.',
-      );
+      Get.snackbar('Invalid details', 'Check the borrow details and dates.');
       return false;
     }
 
@@ -259,7 +384,8 @@ class GetBorrowController extends GetxController {
         return false;
       }
 
-      final bool success = response.statusCode >= 200 &&
+      final bool success =
+          response.statusCode >= 200 &&
           response.statusCode < 300 &&
           decoded is Map &&
           decoded['status']?.toString().toLowerCase() == 'success';
@@ -267,7 +393,7 @@ class GetBorrowController extends GetxController {
       if (!success) {
         final message = decoded is Map
             ? (decoded['message'] ?? 'Unable to update borrow details.')
-                .toString()
+                  .toString()
             : 'Unable to update borrow details.';
 
         Get.snackbar('Update failed', message);
