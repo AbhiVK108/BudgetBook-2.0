@@ -11,7 +11,13 @@ void main() {
     WidgetTester tester,
   ) async {
     Get.put(LoginController());
-    await tester.pumpWidget(const GetMaterialApp(home: LoginView()));
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(375, 812),
+        builder: (_, _) => const GetMaterialApp(home: LoginView()),
+      ),
+    );
+    await tester.pumpAndSettle();
 
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text('Phone verification'), findsOneWidget);

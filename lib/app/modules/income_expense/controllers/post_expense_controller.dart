@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:budget_book_2026/app/core/services/api_services.dart';
+import 'package:budget_book_2026/app/core/services/expense_category_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,6 +11,8 @@ class PostExpenseController extends GetxController {
     : apiService = apiService ?? ApiService();
 
   final ApiService apiService;
+  late final ExpenseCategoryService _expenseCategoryService =
+      ExpenseCategoryService(apiService: apiService);
 
   String get categoryUrl => '${ApiService.categoriesUrl}?type=expense';
 
@@ -120,29 +123,10 @@ class PostExpenseController extends GetxController {
 
     isCreatingCategory.value = true;
     try {
-      final response = await apiService.postCategory({
-        'name': trimmedName,
-        'type': 'expense',
-        'icon': icon,
-        'sort_order': 100,
-      });
-      final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
-      final payload = decoded is Map
-          ? Map<String, dynamic>.from(decoded)
-          : <String, dynamic>{};
-
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300 ||
-          payload['success'] != true ||
-          payload['data'] is! Map) {
-        final message =
-            payload['message']?.toString() ??
-            'Unable to create expense category.';
-        showError(message);
-        return null;
-      }
-
-      final category = Map<String, dynamic>.from(payload['data'] as Map);
+      final category = await _expenseCategoryService.create(
+        name: trimmedName,
+        icon: icon,
+      );
       final uuid = category['uuid']?.toString().trim();
       if (uuid == null || uuid.isEmpty) {
         showError('The server did not return a valid category.');
@@ -388,7 +372,7 @@ class PostExpenseController extends GetxController {
         selectedSourceAccountUuid.value = null;
         selectedDate.value = _formatDate(DateTime.now());
 
-        Get.back(result: true);
+        _closePostExpensePage();
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         showError(
           'Your session does not allow this action. Please sign in again.',
@@ -418,6 +402,20 @@ class PostExpenseController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void _closePostExpensePage() {
+    final context = Get.context;
+    final navigator = context == null
+        ? null
+        : Navigator.maybeOf(context, rootNavigator: true);
+
+    if (navigator != null && navigator.canPop()) {
+      navigator.pop(true);
+      return;
+    }
+
+    Get.back(result: true);
   }
 
   String _formatBackendErrors(dynamic errors) {

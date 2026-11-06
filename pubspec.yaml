@@ -30,6 +30,7 @@ dependencies:
   share_plus: ^13.3.1
   path_provider: ^2.1.6
   file_picker: ^13.3.2
+  firebase_remote_config: ^6.7.1
 
 dev_dependencies:
   flutter_test:

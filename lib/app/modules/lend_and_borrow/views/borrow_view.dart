@@ -212,7 +212,7 @@ class BorrowView extends GetView<BorrowController> {
                                       child: Row(
                                         children: [
                                           CircleAvatar(
-                                            radius: 22.r,
+                                            radius: 20.r,
                                             backgroundColor: const Color(
                                               0xFFD4E6E4,
                                             ),
@@ -269,13 +269,18 @@ class BorrowView extends GetView<BorrowController> {
                                                         color: _muted,
                                                       ),
                                                       SizedBox(width: 5.w),
-                                                      Text(
-                                                        'Borrowed: $date',
-                                                        style: TextStyle(
-                                                          color: _muted,
-                                                          fontSize: 11.sp,
-                                                          fontFamily:
-                                                              'HankenGrotesk',
+                                                      Expanded(
+                                                        child: Text(
+                                                          'Borrowed: $date',
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: TextStyle(
+                                                            color: _muted,
+                                                            fontSize: 11.sp,
+                                                            fontFamily:
+                                                                'HankenGrotesk',
+                                                          ),
                                                         ),
                                                       ),
                                                     ],
@@ -285,51 +290,67 @@ class BorrowView extends GetView<BorrowController> {
                                             ),
                                           ),
                                           SizedBox(width: 8.w),
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                controller.formatAmount(
-                                                  outstanding,
-                                                ),
-                                                style: TextStyle(
-                                                  color: _accent,
-                                                  fontSize: 13.sp,
-                                                  fontWeight: FontWeight.w800,
-                                                  fontFamily: 'HankenGrotesk',
-                                                ),
+                                          Flexible(
+                                            child: ConstrainedBox(
+                                              constraints: BoxConstraints(
+                                                maxWidth: 78.w,
                                               ),
-                                              SizedBox(height: 3.h),
-                                              Container(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 8.w,
-                                                  vertical: 4.h,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(
-                                                    0xFFEAF8F3,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        20.r,
-                                                      ),
-                                                ),
-                                                child: Text(
-                                                  status.isEmpty
-                                                      ? 'Outstanding'
-                                                      : status,
-                                                  style: TextStyle(
-                                                    color: const Color(
-                                                      0xFF168C6A,
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  Text(
+                                                    controller.formatAmount(
+                                                      outstanding,
                                                     ),
-                                                    fontSize: 9.5.sp,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontFamily: 'HankenGrotesk',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      color: _accent,
+                                                      fontSize: 13.sp,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontFamily:
+                                                          'HankenGrotesk',
+                                                    ),
                                                   ),
-                                                ),
+                                                  SizedBox(height: 3.h),
+                                                  Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: 8.w,
+                                                          vertical: 4.h,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                        0xFFEAF8F3,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            20.r,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      status.isEmpty
+                                                          ? 'Outstanding'
+                                                          : status,
+                                                      style: TextStyle(
+                                                        color: const Color(
+                                                          0xFF168C6A,
+                                                        ),
+                                                        fontSize: 9.5.sp,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontFamily:
+                                                            'HankenGrotesk',
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -495,13 +516,16 @@ class BorrowView extends GetView<BorrowController> {
             ),
           ),
           SizedBox(width: 5.w),
-          Text(
-            '$count',
-            style: TextStyle(
-              color: foreground,
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w700,
-              fontFamily: 'HankenGrotesk',
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              '$count',
+              style: TextStyle(
+                color: foreground,
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'HankenGrotesk',
+              ),
             ),
           ),
         ],

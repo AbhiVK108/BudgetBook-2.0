@@ -169,6 +169,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.drag(find.byType(ListView).first, const Offset(0, -900));
+    await tester.pumpAndSettle();
     expect(find.text('Repayment history'), findsOneWidget);
     expect(find.text('2026-10-15'), findsOneWidget);
     expect(tester.takeException(), isNull);

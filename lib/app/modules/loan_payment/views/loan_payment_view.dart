@@ -174,52 +174,6 @@ class LoanPaymentView extends GetView<LoanPaymentController> {
             style: TextStyle(color: _muted, fontSize: 11.sp),
           ),
           SizedBox(height: 16.h),
-          _label('Installment'),
-          SizedBox(height: 7.h),
-          Obx(() {
-            if (controller.isLoadingInstallments.value) {
-              return _choiceMessage('Loading installments...');
-            }
-            if (controller.installmentError.value.isNotEmpty) {
-              return _choiceMessage(
-                controller.installmentError.value,
-                action: TextButton(
-                  onPressed: controller.loadInstallments,
-                  child: const Text('Retry'),
-                ),
-              );
-            }
-            if (controller.installments.isEmpty) {
-              return _choiceMessage(
-                'No unpaid installments are available for this loan.',
-              );
-            }
-            return DropdownButtonFormField<String>(
-              key: ValueKey(controller.selectedInstallmentUuid.value),
-              initialValue: controller.selectedInstallmentUuid.value,
-              isExpanded: true,
-              decoration: _decoration(icon: Icons.event_note_outlined),
-              hint: Text(
-                'Choose an installment',
-                style: TextStyle(color: _muted, fontSize: 14.sp),
-              ),
-              items: controller.installments
-                  .map(
-                    (installment) => DropdownMenuItem<String>(
-                      value: controller.installmentUuid(installment),
-                      child: Text(
-                        controller.installmentLabel(installment),
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: _dark, fontSize: 14.sp),
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (uuid) =>
-                  controller.selectedInstallmentUuid.value = uuid,
-            );
-          }),
-          SizedBox(height: 16.h),
           _label('Payment date'),
           SizedBox(height: 7.h),
           Obx(
@@ -375,15 +329,6 @@ class LoanPaymentView extends GetView<LoanPaymentController> {
         break;
       }
     }
-    Map<String, dynamic>? installment;
-    for (final item in controller.installments) {
-      if (controller.installmentUuid(item) ==
-          controller.selectedInstallmentUuid.value) {
-        installment = item;
-        break;
-      }
-    }
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -401,14 +346,8 @@ class LoanPaymentView extends GetView<LoanPaymentController> {
               SizedBox(height: 6.h),
               Text('Source account: $accountName'),
             ],
-            if (installment != null) ...[
-              SizedBox(height: 6.h),
-              Text('For: ${controller.installmentLabel(installment)}'),
-            ],
             SizedBox(height: 10.h),
-            const Text(
-              'Confirm the amount and installment before recording this payment.',
-            ),
+            const Text('Confirm the payment amount before recording it.'),
           ],
         ),
         actions: [

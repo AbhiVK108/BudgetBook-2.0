@@ -36,6 +36,7 @@ class PostloanController extends GetxController {
   final selectedExpenseCategoryUuid = RxnString();
   final isLoadingAccounts = false.obs;
   final isLoadingCategories = false.obs;
+  final isCreatingCategory = false.obs;
   final accountLoadError = ''.obs;
   final categoryLoadError = ''.obs;
   final isLoading = false.obs;
@@ -168,6 +169,45 @@ class PostloanController extends GetxController {
     }
   }
 
+  Future<Map<String, dynamic>?> createExpenseCategory({
+    required String name,
+    required String icon,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty || isCreatingCategory.value) return null;
+
+    try {
+      isCreatingCategory.value = true;
+      final response = await apiService.postCategory({
+        'name': trimmedName,
+        'type': 'expense',
+        'icon': icon,
+        'sort_order': 100,
+      });
+      final decoded = _decodeResponse(response);
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          decoded['success'] != true) {
+        return null;
+      }
+
+      final data = decoded['data'];
+      if (data is! Map) return null;
+      final category = Map<String, dynamic>.from(data);
+      final uuid = categoryUuid(category);
+      if (uuid.isEmpty) return null;
+
+      expenseCategories.add(category);
+      selectedExpenseCategoryUuid.value = uuid;
+      return category;
+    } catch (error) {
+      debugPrint('LOAN CATEGORY CREATE ERROR: $error');
+      return null;
+    } finally {
+      isCreatingCategory.value = false;
+    }
+  }
+
   Future<void> selectFirstDueDate(BuildContext context) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -291,7 +331,6 @@ class PostloanController extends GetxController {
         _pendingRequestBody = null;
         _pendingIdempotencyKey = null;
         _showMessage('Success', message);
-        Get.back(result: true);
         return true;
       }
       _showMessage('Unable to save loan', _errorDetails(decoded, message));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import '../../../routes/app_pages.dart';
 import '../controllers/postloan_controller.dart';
 
 class PostloanView extends GetView<PostloanController> {
@@ -15,6 +16,13 @@ class PostloanView extends GetView<PostloanController> {
   static const Color fieldBackground = Color(0xFFF7F9FB);
   static const Color mintBorder = Color(0xFFBCEBE4);
 
+  Future<void> _submit(BuildContext context) async {
+    final saved = await controller.postLoan();
+    if (!saved || !context.mounted) return;
+
+    Navigator.of(context).pop(true);
+  }
+
   Future<void> _confirmContractCreation(BuildContext context) async {
     final sanctioned = double.tryParse(
       controller.sanctionedAmountController.text.trim(),
@@ -26,6 +34,7 @@ class PostloanView extends GetView<PostloanController> {
       controller.annualInterestRateController.text.trim(),
     );
     final tenure = int.tryParse(controller.tenureMonthsController.text.trim());
+
     if (controller.loanNameController.text.trim().isEmpty ||
         controller.lenderNameController.text.trim().isEmpty ||
         sanctioned == null ||
@@ -35,49 +44,381 @@ class PostloanView extends GetView<PostloanController> {
         controller.firstDueDate.value == null ||
         controller.selectedAccountUuid.value == null ||
         controller.selectedExpenseCategoryUuid.value == null) {
-      await controller.postLoan();
+      await _submit(context);
       return;
     }
 
+    final loanName = controller.loanNameController.text.trim();
+    final lenderName = controller.lenderNameController.text.trim();
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create loan contract?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Loan: ${controller.loanNameController.text.trim()}'),
-            SizedBox(height: 6.h),
-            Text('Lender: ${controller.lenderNameController.text.trim()}'),
-            SizedBox(height: 6.h),
-            Text('Principal: INR ${principal.toStringAsFixed(2)}'),
-            SizedBox(height: 6.h),
-            Text('Sanctioned: INR ${sanctioned.toStringAsFixed(2)}'),
-            SizedBox(height: 6.h),
-            Text('Annual interest rate: ${annualRate.toStringAsFixed(4)}%'),
-            SizedBox(height: 6.h),
-            Text('Tenure: $tenure months'),
-            SizedBox(height: 12.h),
-            const Text(
-              'This creates the loan contract only. It does not disburse '
-              'funds; record a disbursement separately when money is received.',
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(horizontal: 22.w),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18.r),
+              border: Border.all(color: const Color(0xFFE5EFED)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF163D38).withValues(alpha: 0.12),
+                  blurRadius: 24.r,
+                  offset: Offset(0, 10.h),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Review'),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                Container(
+                  padding: EdgeInsets.fromLTRB(18.w, 18.h, 18.w, 16.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF7F4),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(18.r),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44.w,
+                        height: 44.w,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD3F0E9),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Icon(
+                          Icons.fact_check_outlined,
+                          color: const Color(0xFF078779),
+                          size: 24.sp,
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Review loan contract',
+                              style: TextStyle(
+                                color: const Color(0xFF263445),
+                                fontSize: 17.sp,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: 'HankenGrotesk',
+                              ),
+                            ),
+                            SizedBox(height: 3.h),
+                            Text(
+                              'Confirm the details before creating',
+                              style: TextStyle(
+                                color: const Color(0xFF71808E),
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'HankenGrotesk',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Padding(
+                  padding: EdgeInsets.fromLTRB(18.w, 18.h, 18.w, 16.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Loan identity
+                      Text(
+                        'LOAN DETAILS',
+                        style: TextStyle(
+                          color: const Color(0xFF71808E),
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                          fontFamily: 'HankenGrotesk',
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+
+                      _confirmationDetailRow(
+                        icon: Icons.description_outlined,
+                        label: 'Loan name',
+                        value: loanName,
+                      ),
+                      SizedBox(height: 11.h),
+                      _confirmationDetailRow(
+                        icon: Icons.account_balance_outlined,
+                        label: 'Lender',
+                        value: lenderName,
+                      ),
+
+                      SizedBox(height: 17.h),
+
+                      // Principal highlight
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(15.w),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F8F6),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: const Color(0xFFD5ECE6)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'PRINCIPAL AMOUNT',
+                              style: TextStyle(
+                                color: const Color(0xFF64817B),
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.7,
+                                fontFamily: 'HankenGrotesk',
+                              ),
+                            ),
+                            SizedBox(height: 5.h),
+                            Text(
+                              '₹${principal.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                color: const Color(0xFF08796F),
+                                fontSize: 23.sp,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: 'HankenGrotesk',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 16.h),
+
+                      // Financial summary
+                      Text(
+                        'CONTRACT SUMMARY',
+                        style: TextStyle(
+                          color: const Color(0xFF71808E),
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                          fontFamily: 'HankenGrotesk',
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+
+                      _confirmationSummaryRow(
+                        'Sanctioned amount',
+                        '₹${sanctioned.toStringAsFixed(2)}',
+                      ),
+                      _confirmationSummaryRow(
+                        'Annual interest rate',
+                        '${annualRate.toStringAsFixed(4)}%',
+                      ),
+                      _confirmationSummaryRow('Loan tenure', '$tenure months'),
+
+                      SizedBox(height: 15.h),
+
+                      // Important information
+                      Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF8EB),
+                          borderRadius: BorderRadius.circular(10.r),
+                          border: Border.all(color: const Color(0xFFF1E2C2)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: const Color(0xFFB17A27),
+                              size: 18.sp,
+                            ),
+                            SizedBox(width: 9.w),
+                            Expanded(
+                              child: Text(
+                                'Creating this contract will only save the loan details. '
+                                'It will not disburse any funds. Record a separate '
+                                'disbursement when the loan amount is received.',
+                                style: TextStyle(
+                                  color: const Color(0xFF806333),
+                                  fontSize: 11.sp,
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w500,
+                                  fontFamily: 'HankenGrotesk',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 20.h),
+
+                      // Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 46.h,
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  Navigator.of(dialogContext).pop(false);
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF52616D),
+                                  side: const BorderSide(
+                                    color: Color(0xFFDCE5E8),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(9.r),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Review',
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'HankenGrotesk',
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10.w),
+                          Expanded(
+                            flex: 2,
+                            child: SizedBox(
+                              height: 46.h,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(dialogContext).pop(true);
+                                },
+                                icon: Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  size: 17.sp,
+                                ),
+                                label: Text(
+                                  'Create contract',
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'HankenGrotesk',
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF079B8D),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(9.r),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Create contract'),
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+
+    if (confirmed == true) {
+      await _submit(context);
+    }
+  }
+
+  Widget _confirmationDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 32.w,
+          height: 32.w,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2F6F7),
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          child: Icon(icon, color: const Color(0xFF71808E), size: 17.sp),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: const Color(0xFF87939D),
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: 'HankenGrotesk',
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                value,
+                style: TextStyle(
+                  color: const Color(0xFF263445),
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'HankenGrotesk',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _confirmationSummaryRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6.h),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: const Color(0xFF71808E),
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+                fontFamily: 'HankenGrotesk',
+              ),
+            ),
+          ),
+          Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: const Color(0xFF263445),
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'HankenGrotesk',
+            ),
           ),
         ],
       ),
     );
-    if (confirmed == true) await controller.postLoan();
   }
 
   @override
@@ -460,9 +801,13 @@ class PostloanView extends GetView<PostloanController> {
       );
     }
     if (controller.accounts.isEmpty) {
-      return _retrySelector(
+      return _emptySelector(
         'No active accounts available. Add an account and retry.',
-        controller.loadAccounts,
+        'Add account',
+        () async {
+          await Get.toNamed(Routes.bankAccounts);
+          await controller.loadAccounts();
+        },
       );
     }
     return _dropdown<String>(
@@ -492,44 +837,82 @@ class PostloanView extends GetView<PostloanController> {
   }
 
   Widget _categorySelector() {
-    if (controller.isLoadingCategories.value) return _loadingSelector();
-    if (controller.categoryLoadError.value.isNotEmpty) {
-      return _retrySelector(
+    Widget selector;
+
+    if (controller.isLoadingCategories.value) {
+      selector = _loadingSelector();
+    } else if (controller.categoryLoadError.value.isNotEmpty) {
+      selector = _retrySelector(
         controller.categoryLoadError.value,
         controller.loadExpenseCategories,
       );
-    }
-    if (controller.expenseCategories.isEmpty) {
-      return _retrySelector(
-        'No expense categories available. Add a category and retry.',
-        controller.loadExpenseCategories,
+    } else if (controller.expenseCategories.isEmpty) {
+      selector = _emptySelector(
+        'No expense categories available. Add one to continue.',
+        'Add category',
+        _openAddExpenseCategory,
+      );
+    } else {
+      final selectedUuid = controller.selectedExpenseCategoryUuid.value;
+
+      final selectedValue =
+          controller.expenseCategories.any(
+            (category) => controller.categoryUuid(category) == selectedUuid,
+          )
+          ? selectedUuid
+          : controller.categoryUuid(controller.expenseCategories.first);
+
+      selector = _dropdown<String>(
+        value: selectedValue.toString(),
+        icon: Icons.receipt_long_outlined,
+        items: controller.expenseCategories.map((category) {
+          return DropdownMenuItem<String>(
+            value: controller.categoryUuid(category),
+            child: Text(
+              controller.categoryName(category),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          controller.selectedExpenseCategoryUuid.value = value;
+        },
       );
     }
-    return _dropdown<String>(
-      value:
-          controller.expenseCategories.any(
-            (category) =>
-                controller.categoryUuid(category) ==
-                controller.selectedExpenseCategoryUuid.value,
-          )
-          ? controller.selectedExpenseCategoryUuid.value!
-          : controller.categoryUuid(controller.expenseCategories.first),
-      icon: Icons.receipt_long_outlined,
-      items: controller.expenseCategories
-          .map(
-            (category) => DropdownMenuItem(
-              value: controller.categoryUuid(category),
-              child: Text(
-                controller.categoryName(category),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: (value) =>
-          controller.selectedExpenseCategoryUuid.value = value,
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [selector, _addExpenseCategoryButton()],
     );
+  }
+
+  Widget _addExpenseCategoryButton() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton.icon(
+        onPressed: _openAddExpenseCategory,
+        icon: Icon(Icons.add_rounded, size: 17.sp),
+        label: const Text('Add new'),
+        style: TextButton.styleFrom(
+          foregroundColor: primary,
+          padding: EdgeInsets.symmetric(horizontal: 6.w),
+          minimumSize: Size(0, 32.h),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'HankenGrotesk',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAddExpenseCategory() async {
+    await Get.toNamed(Routes.ADD_EXPENSE_CATEGORY);
+
+    await controller.loadExpenseCategories();
   }
 
   Widget _loadingSelector() => Container(
@@ -565,6 +948,38 @@ class PostloanView extends GetView<PostloanController> {
             ),
           ),
           TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptySelector(
+    String message,
+    String actionLabel,
+    VoidCallback onAction,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: fieldBackground,
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: const Color(0xFF7D8DA1), fontSize: 12.sp),
+            ),
+          ),
+          TextButton(
+            onPressed: onAction,
+            child: Text(
+              actionLabel,
+              style: TextStyle(color: primary, fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );

@@ -60,7 +60,7 @@ class ChitfundView extends GetView<ChitfundController> {
                 child: _emptyState(),
               )
             else if (selectedSection.value == 0) ...[
-              // _summaryPanel(),
+              _summaryPanel(),
               Padding(
                 padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
                 child: Text(
@@ -928,46 +928,46 @@ class ChitfundView extends GetView<ChitfundController> {
                   ),
                   _statusPill(status.isEmpty ? 'Completed' : status),
                   SizedBox(width: 4.w),
-                  PopupMenuButton<String>(
-                    tooltip: 'Chit options',
-                    onSelected: (action) {
-                      if (uuid.isEmpty) return;
-                      if (action == 'auction')
-                        _auctionSheet(
-                          uuid,
-                          name,
-                          chit,
-                          chitController.apiService,
-                        );
-                      if (action == 'payout')
-                        _payoutSheet(uuid, name, chitController.apiService);
-                      if (action == 'receive')
-                        _receiveSheet(
-                          uuid,
-                          name,
-                          chit,
-                          chitController.apiService,
-                        );
-                      if (action == 'edit')
-                        Get.toNamed(Routes.POSTCHITFUND, arguments: chit);
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: 'auction',
-                        child: Text('Record auction'),
-                      ),
-                      PopupMenuItem(
-                        value: 'payout',
-                        child: Text('Create payout'),
-                      ),
-                      PopupMenuItem(
-                        value: 'receive',
-                        child: Text('Receive payout'),
-                      ),
-                      PopupMenuDivider(),
-                      PopupMenuItem(value: 'edit', child: Text('Edit chit')),
-                    ],
-                  ),
+                  // PopupMenuButton<String>(
+                  //   tooltip: 'Chit options',
+                  //   onSelected: (action) {
+                  //     if (uuid.isEmpty) return;
+                  //     if (action == 'auction')
+                  //       _auctionSheet(
+                  //         uuid,
+                  //         name,
+                  //         chit,
+                  //         chitController.apiService,
+                  //       );
+                  //     if (action == 'payout')
+                  //       _payoutSheet(uuid, name, chitController.apiService);
+                  //     if (action == 'receive')
+                  //       _receiveSheet(
+                  //         uuid,
+                  //         name,
+                  //         chit,
+                  //         chitController.apiService,
+                  //       );
+                  //     if (action == 'edit')
+                  //       Get.toNamed(Routes.POSTCHITFUND, arguments: chit);
+                  //   },
+                  //   itemBuilder: (_) => const [
+                  //     PopupMenuItem(
+                  //       value: 'auction',
+                  //       child: Text('Record auction'),
+                  //     ),
+                  //     PopupMenuItem(
+                  //       value: 'payout',
+                  //       child: Text('Create payout'),
+                  //     ),
+                  //     PopupMenuItem(
+                  //       value: 'receive',
+                  //       child: Text('Receive payout'),
+                  //     ),
+                  //     PopupMenuDivider(),
+                  //     PopupMenuItem(value: 'edit', child: Text('Edit chit')),
+                  //   ],
+                  // ),
                 ],
               ),
               SizedBox(height: 12.h),

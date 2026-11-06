@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:budget_book_2026/app/routes/app_pages.dart';
 
 import '../controllers/get_borrow_controller.dart';
@@ -8,12 +10,16 @@ import '../controllers/get_borrow_controller.dart';
 class GetBorrowView extends GetView<GetBorrowController> {
   const GetBorrowView({super.key});
 
-  static const Color primaryColor = Color(0xFF079B8D);
-  static const Color secondaryColor = Color(0xFF009B83);
-  static const Color scaffoldColor = Color(0xFFF5F8F7);
-  static const Color labelColor = Color(0xFF4F4F4F);
-  static const Color mutedColor = Color(0xFF8B9CB5);
+  static const Color primaryColor = Color(0xFF0F8F7F);
+  static const Color primaryDark = Color(0xFF087568);
+  static const Color scaffoldColor = Color(0xFFF4F7F8);
+  static const Color darkColor = Color(0xFF172B3A);
+  static const Color labelColor = Color(0xFF647582);
+  static const Color mutedColor = Color(0xFF87949F);
+  static const Color borderColor = Color(0xFFE8EEEE);
   static const String fontFamily = 'HankenGrotesk';
+
+  Map<String, dynamic> get _borrow => controller.selectedBorrow;
 
   @override
   Widget build(BuildContext context) {
@@ -21,336 +27,37 @@ class GetBorrowView extends GetView<GetBorrowController> {
       backgroundColor: scaffoldColor,
       appBar: _buildAppBar(),
       body: Obx(() {
-        if (controller.isLoading.value &&
-            controller.borrows.isEmpty &&
-            controller.selectedBorrow.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (controller.errorMessage.value.isNotEmpty &&
-            controller.borrows.isEmpty &&
-            controller.selectedBorrow.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(controller.errorMessage.value),
-                TextButton(
-                  onPressed: controller.fetchBorrows,
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+        if (controller.isLoading.value && controller.selectedBorrow.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(color: primaryColor),
           );
         }
-        final name = controller.personName;
-        final amount = double.tryParse(controller.amount) ?? 0;
-        final interest = double.tryParse(controller.interest) ?? 0;
-        return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(18.w, 20.h, 18.w, 20.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+
+        if (controller.errorMessage.value.isNotEmpty &&
+            controller.selectedBorrow.isEmpty) {
+          return _errorState();
+        }
+
+        if (controller.selectedBorrow.isEmpty) {
+          return _emptyState();
+        }
+
+        return RefreshIndicator(
+          color: primaryColor,
+          backgroundColor: Colors.white,
+          onRefresh: _refreshDetails,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 30.h),
             children: [
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.only(bottom: 20.w, left: 20.w, right: 20.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(27.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      offset: const Offset(0, 7),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 4,
-                      width: 375,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFF34D399),
-                            Color(0xFF2DD4BF),
-                            Color(0xff22D3EE),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 17.h),
-
-                    // Person details and edit/delete buttons
-                    Row(
-                      children: [
-                        Container(
-                          height: 52.w,
-                          width: 52.w,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFF5264), Color(0xFFFF941D)],
-                            ),
-                            borderRadius: BorderRadius.circular(17.r),
-                            border: Border.all(
-                              color: const Color(0xFFFFE4D9),
-                              width: 3,
-                            ),
-                          ),
-                          child: Text(
-                            name.isEmpty ? '?' : name[0].toUpperCase(),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 19.sp,
-                              fontWeight: FontWeight.w700,
-                              fontFamily: fontFamily,
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(width: 12.w),
-
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'BORROWED FROM',
-                                style: TextStyle(
-                                  color: mutedColor,
-                                  fontSize: 11.sp,
-                                  fontFamily: fontFamily,
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      name.isEmpty ? 'Unknown' : name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: const Color(0xFF182337),
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.w700,
-                                        fontFamily: fontFamily,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 5.w),
-                                  Icon(
-                                    Icons.verified,
-                                    size: 14.sp,
-                                    color: const Color(0xFFDDEFEA),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        _iconButton(
-                          icon: Icons.edit_outlined,
-                          color: const Color(0xFF43556D),
-                          onTap: _showEditDialog,
-                        ),
-
-                        SizedBox(width: 5.w),
-
-                        _iconButton(
-                          icon: Icons.delete_outline,
-                          color: const Color(0xFFFF3151),
-                          onTap: () {
-                            _showDeleteDialog();
-                          },
-                        ),
-                      ],
-                    ),
-
-                    SizedBox(height: 12.h),
-
-                    // Amount and additional interest
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '₹${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}',
-                            style: TextStyle(
-                              color: const Color(0xFF182337),
-                              fontSize: 29.sp,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                              fontFamily: fontFamily,
-                            ),
-                          ),
-                        ),
-
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 6.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FFF8),
-                            border: Border.all(color: const Color(0xFFAEF3D6)),
-                            borderRadius: BorderRadius.circular(22.r),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add, color: primaryColor, size: 13.sp),
-                              SizedBox(width: 3.w),
-                              Text(
-                                '₹${interest.toStringAsFixed(interest.truncateToDouble() == interest ? 0 : 2)}',
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.w700,
-                                  fontFamily: fontFamily,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    SizedBox(height: 12.h),
-
-                    // Note
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 9.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F7FA),
-                        border: Border.all(color: const Color(0xFFE7EDF4)),
-                        borderRadius: BorderRadius.circular(13.r),
-                      ),
-                      child: Text(
-                        controller.description.isEmpty
-                            ? 'No description'
-                            : controller.description,
-                        style: TextStyle(
-                          color: Color(0xff0F172A),
-                          fontSize: 12.sp,
-                          fontFamily: fontFamily,
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 10.h),
-
-                    Divider(
-                      color: const Color(0xFFE7EDF4),
-                      height: 10.h,
-                      thickness: 0.8,
-                    ),
-
-                    SizedBox(height: 9.h),
-
-                    // Dates and interest
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 15.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAFBFC),
-                        border: Border.all(color: const Color(0xFFEAF0F5)),
-                        borderRadius: BorderRadius.circular(17.r),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _infoColumn(
-                              'RECEIVED ON',
-                              controller.receiveDate,
-                            ),
-                          ),
-                          Expanded(
-                            child: _infoColumn(
-                              'RETURN BY',
-                              controller.returnDate,
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'INTEREST',
-                                  style: TextStyle(
-                                    color: primaryColor,
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w600,
-                                    fontFamily: fontFamily,
-                                  ),
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  '₹${interest.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    color: primaryColor,
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: fontFamily,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: 17.h),
-
-                    // Received button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 41.h,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [secondaryColor, primaryColor],
-                          ),
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _recordRepayment,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16.r),
-                            ),
-                          ),
-                          child: Text(
-                            'Record repayment',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: fontFamily,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16.h),
+              _personHeader(),
+              SizedBox(height: 14.h),
+              _financialOverview(),
+              SizedBox(height: 14.h),
+              _borrowingInformation(),
+              SizedBox(height: 14.h),
+              _repaymentAction(),
+              SizedBox(height: 18.h),
               _repaymentHistory(),
             ],
           ),
@@ -359,15 +66,975 @@ class GetBorrowView extends GetView<GetBorrowController> {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // APP BAR
+  // ---------------------------------------------------------------------------
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      toolbarHeight: 66.h,
+      leadingWidth: 48.w,
+      leading: IconButton(
+        onPressed: Get.back,
+        splashRadius: 22.r,
+        icon: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 18.sp,
+          color: darkColor,
+        ),
+      ),
+      titleSpacing: 4.w,
+      title: Obx(
+        () => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'BORROWING RECORD',
+              style: TextStyle(
+                fontFamily: fontFamily,
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.4,
+                color: primaryColor,
+              ),
+            ),
+            SizedBox(height: 3.h),
+            Text(
+              controller.personName.isEmpty
+                  ? 'Borrowing details'
+                  : controller.personName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: fontFamily,
+                fontSize: 19.sp,
+                fontWeight: FontWeight.w800,
+                color: darkColor,
+                height: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        Padding(
+          padding: EdgeInsets.only(right: 16.w),
+          child: _headerAction(
+            icon: Icons.edit_outlined,
+            onTap: _showEditDialog,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _headerAction({required IconData icon, required VoidCallback onTap}) {
+    return Material(
+      color: const Color(0xFFEAF6F3),
+      borderRadius: BorderRadius.circular(13.r),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(13.r),
+        child: Container(
+          width: 42.w,
+          height: 42.w,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13.r),
+            border: Border.all(color: primaryColor.withValues(alpha: 0.12)),
+          ),
+          child: Icon(icon, size: 20.sp, color: primaryColor),
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // PERSON HEADER
+  // ---------------------------------------------------------------------------
+
+  Widget _personHeader() {
+    final name = controller.personName;
+    final mobile =
+        _borrow['borrower_phone']?.toString() ??
+        _borrow['lender_phone']?.toString() ??
+        _borrow['phone']?.toString() ??
+        _borrow['mobile']?.toString() ??
+        controller.phone;
+
+    final hasPhone = _normalizedPhone(mobile).isNotEmpty;
+    final status = _status;
+
+    return Container(
+      padding: EdgeInsets.all(13.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF173C45).withValues(alpha: 0.025),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46.w,
+            height: 46.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5F1),
+              borderRadius: BorderRadius.circular(14.r),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              name.isEmpty ? '?' : name[0].toUpperCase(),
+              style: TextStyle(
+                color: primaryDark,
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w800,
+                fontFamily: fontFamily,
+              ),
+            ),
+          ),
+          SizedBox(width: 11.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'BORROWED FROM',
+                  style: TextStyle(
+                    color: mutedColor,
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.9,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+                SizedBox(height: 3.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name.isEmpty ? 'Unknown person' : name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: darkColor,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: fontFamily,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 6.w),
+                    _statusBadge(status),
+                  ],
+                ),
+                if (hasPhone) ...[
+                  SizedBox(height: 6.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          mobile,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: labelColor,
+                            fontSize: 10.5.sp,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 6.w),
+                      _personContactButton(
+                        icon: FontAwesomeIcons.phone,
+                        label: 'Call',
+                        tooltip: 'Call lender',
+                        foreground: const Color(0xFF2563EB),
+                        background: const Color(0xFFEEF4FF),
+                        onTap: () => _callNumber(mobile),
+                      ),
+                      SizedBox(width: 5.w),
+                      _personContactButton(
+                        icon: FontAwesomeIcons.whatsapp,
+                        label: 'WhatsApp',
+                        tooltip: 'Message on WhatsApp',
+                        foreground: const Color(0xFF168C55),
+                        background: const Color(0xFFEAF7EF),
+                        onTap: () => _openWhatsApp(mobile),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusBadge(String status) {
+    final color = _statusColor(status);
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: _statusBackground(status),
+        borderRadius: BorderRadius.circular(7.r),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: color,
+          fontSize: 9.sp,
+          fontWeight: FontWeight.w800,
+          fontFamily: fontFamily,
+        ),
+      ),
+    );
+  }
+
+  Widget _personContactButton({
+    required FaIconData icon,
+    required String label,
+    required String tooltip,
+    required Color foreground,
+    required Color background,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: background,
+        borderRadius: BorderRadius.circular(8.r),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8.r),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 7.h),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FaIcon(icon, size: 12.sp, color: foreground),
+                SizedBox(width: 5.w),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _normalizedPhone(String phone) {
+    return phone.replaceAll(RegExp(r'[^0-9+]'), '').trim();
+  }
+
+  String _whatsAppPhone(String phone) {
+    var digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digits.length == 10) {
+      digits = '91$digits';
+    } else if (digits.length == 11 && digits.startsWith('0')) {
+      digits = '91${digits.substring(1)}';
+    }
+
+    return digits;
+  }
+
+  Future<void> _callNumber(String phone) async {
+    final normalized = _normalizedPhone(phone);
+    if (normalized.isEmpty) return;
+
+    final uri = Uri(scheme: 'tel', path: normalized);
+
+    try {
+      final launched = await launchUrl(uri);
+      if (!launched) {
+        _showContactError('Unable to open the phone dialer.');
+      }
+    } catch (_) {
+      _showContactError('Unable to open the phone dialer.');
+    }
+  }
+
+  Future<void> _openWhatsApp(String phone) async {
+    final whatsappPhone = _whatsAppPhone(phone);
+    if (whatsappPhone.isEmpty) return;
+
+    final uri = Uri.parse('https://wa.me/$whatsappPhone');
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        _showContactError('Unable to open WhatsApp.');
+      }
+    } catch (_) {
+      _showContactError('Unable to open WhatsApp.');
+    }
+  }
+
+  void _showContactError(String message) {
+    Get.snackbar(
+      'Contact action',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.white,
+      colorText: darkColor,
+      margin: EdgeInsets.all(14.w),
+      borderRadius: 14.r,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // FINANCIAL OVERVIEW
+  // ---------------------------------------------------------------------------
+
+  Widget _financialOverview() {
+    final borrow = _borrow;
+
+    final principal = _firstAmount([
+      borrow['principal_amount'],
+      borrow['amount'],
+      borrow['borrowed_amount'],
+    ]);
+
+    final principalPaid = _firstAmount([
+      borrow['principal_paid'],
+      borrow['principal_repaid'],
+      borrow['principal_recovered'],
+    ]);
+
+    final principalOutstanding = _firstAmount([
+      borrow['principal_outstanding'],
+      borrow['principal_due'],
+    ]);
+
+    final interestPaid = _firstAmount([
+      borrow['interest_paid'],
+      borrow['interest_repaid'],
+      borrow['interest_received'],
+    ]);
+
+    final interestOutstanding = _firstAmount([
+      borrow['interest_outstanding'],
+      borrow['interest_due'],
+    ]);
+
+    final totalOutstanding = _firstAmount([
+      borrow['total_outstanding'],
+      borrow['outstanding_amount'],
+      borrow['balance_due'],
+    ]);
+
+    final interestMethod =
+        borrow['interest_method']?.toString().toLowerCase() ?? '';
+
+    final interestDescription = interestMethod == 'fixed'
+        ? _formatCurrency(
+            _firstAmount([borrow['fixed_interest_amount'], borrow['interest']]),
+          )
+        : interestMethod == 'percentage'
+        ? '${borrow['interest_rate'] ?? borrow['interest'] ?? '—'}% ${borrow['interest_period'] ?? ''}'
+        : interestMethod.isEmpty
+        ? 'Not specified'
+        : interestMethod.capitalizeFirst!;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [primaryDark, primaryColor],
+        ),
+        borderRadius: BorderRadius.circular(22.r),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withValues(alpha: 0.14),
+            blurRadius: 20,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -35.w,
+            top: -45.h,
+            child: Container(
+              width: 150.w,
+              height: 150.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.07),
+                  width: 24,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(17.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 34.w,
+                      height: 34.w,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.13),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: Colors.white,
+                        size: 18.sp,
+                      ),
+                    ),
+                    SizedBox(width: 9.w),
+                    Expanded(
+                      child: Text(
+                        'Borrowing overview',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: fontFamily,
+                        ),
+                      ),
+                    ),
+                    _actionButton(
+                      icon: Icons.delete_outline_rounded,
+                      color: const Color(0xFFFFD4D4),
+                      background: Colors.white.withValues(alpha: 0.12),
+                      borderColor: Colors.white.withValues(alpha: 0.15),
+                      onTap: _showDeleteDialog,
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20.h),
+                Text(
+                  'TOTAL OUTSTANDING',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+                SizedBox(height: 5.h),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _formatCurrency(
+                      totalOutstanding > 0
+                          ? totalOutstanding
+                          : principalOutstanding + interestOutstanding,
+                    ),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 31.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.7,
+                      fontFamily: fontFamily,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 17.h),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 13.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _overviewMetric(
+                              label: 'Borrowed',
+                              value: _formatCurrency(principal),
+                              icon: Icons.account_balance_outlined,
+                            ),
+                          ),
+                          _metricDivider(),
+                          Expanded(
+                            child: _overviewMetric(
+                              label: 'Principal paid',
+                              value: _formatCurrency(principalPaid),
+                              icon: Icons.check_circle_outline_rounded,
+                            ),
+                          ),
+                        ],
+                      ),
+                      _overviewDivider(),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _overviewMetric(
+                              label: 'Principal due',
+                              value: _formatCurrency(principalOutstanding),
+                              icon: Icons.pending_outlined,
+                            ),
+                          ),
+                          _metricDivider(),
+                          Expanded(
+                            child: _overviewMetric(
+                              label: 'Interest paid',
+                              value: _formatCurrency(interestPaid),
+                              icon: Icons.trending_up_rounded,
+                            ),
+                          ),
+                        ],
+                      ),
+                      _overviewDivider(),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _overviewMetric(
+                              label: 'Interest due',
+                              value: _formatCurrency(interestOutstanding),
+                              icon: Icons.percent_rounded,
+                            ),
+                          ),
+                          _metricDivider(),
+                          Expanded(
+                            child: _overviewMetric(
+                              label: 'Interest method',
+                              value: interestDescription,
+                              icon: Icons.calculate_outlined,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _overviewMetric({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 13.sp,
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+              SizedBox(width: 5.w),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 6.h),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w800,
+                fontFamily: fontFamily,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricDivider() {
+    return Container(
+      width: 1,
+      height: 34.h,
+      color: Colors.white.withValues(alpha: 0.18),
+    );
+  }
+
+  Widget _overviewDivider() {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 11.h),
+      child: Divider(height: 1, color: Colors.white.withValues(alpha: 0.15)),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // BORROWING INFORMATION
+  // ---------------------------------------------------------------------------
+
+  Widget _borrowingInformation() {
+    final note = controller.description.isNotEmpty
+        ? controller.description
+        : 'No description added';
+
+    final interest = _firstAmount([
+      _borrow['fixed_interest_amount'],
+      _borrow['interest_amount'],
+      _borrow['interest'],
+    ]);
+
+    return Container(
+      padding: EdgeInsets.all(17.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF173C45).withValues(alpha: 0.025),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader(
+            title: 'Borrowing information',
+            icon: Icons.receipt_long_outlined,
+          ),
+          SizedBox(height: 17.h),
+          Row(
+            children: [
+              Expanded(
+                child: _informationTile(
+                  label: 'RECEIVED ON',
+                  value: controller.receiveDate,
+                  icon: Icons.calendar_today_outlined,
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: _informationTile(
+                  label: 'RETURN BY',
+                  value: controller.returnDate,
+                  icon: Icons.event_available_outlined,
+                  isDueDate: true,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Container(
+            padding: EdgeInsets.all(13.w),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF6F9FA),
+              borderRadius: BorderRadius.circular(13.r),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 31.w,
+                  height: 31.w,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF6F3),
+                    borderRadius: BorderRadius.circular(9.r),
+                  ),
+                  child: Icon(
+                    Icons.notes_rounded,
+                    color: primaryColor,
+                    size: 17.sp,
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'NOTE',
+                        style: TextStyle(
+                          color: mutedColor,
+                          fontSize: 9.sp,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                          fontFamily: fontFamily,
+                        ),
+                      ),
+                      SizedBox(height: 5.h),
+                      Text(
+                        note,
+                        style: TextStyle(
+                          color: darkColor,
+                          fontSize: 12.sp,
+                          height: 1.45,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: fontFamily,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 11.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF6F3),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: const Color(0xFFDCEFEA)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.percent_rounded, color: primaryColor, size: 16.sp),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    'Interest amount',
+                    style: TextStyle(
+                      color: labelColor,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: fontFamily,
+                    ),
+                  ),
+                ),
+                Text(
+                  _formatCurrency(interest),
+                  style: TextStyle(
+                    color: primaryDark,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _informationTile({
+    required String label,
+    required String value,
+    required IconData icon,
+    bool isDueDate = false,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: isDueDate ? const Color(0xFFFFF7EC) : const Color(0xFFEAF6F3),
+        borderRadius: BorderRadius.circular(13.r),
+        border: Border.all(
+          color: isDueDate ? const Color(0xFFF5E5CF) : const Color(0xFFDCEFEA),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                color: isDueDate ? const Color(0xFFD18A35) : primaryColor,
+                size: 14.sp,
+              ),
+              SizedBox(width: 6.w),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isDueDate ? const Color(0xFFB77A2E) : primaryColor,
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 9.h),
+          Text(
+            value.isEmpty ? '—' : value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: darkColor,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w800,
+              fontFamily: fontFamily,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // REPAYMENT ACTION
+  // ---------------------------------------------------------------------------
+
+  Widget _repaymentAction() {
+    return Container(
+      padding: EdgeInsets.all(15.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(19.r),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 43.w,
+            height: 43.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF6F3),
+              borderRadius: BorderRadius.circular(13.r),
+            ),
+            child: Icon(
+              Icons.payments_outlined,
+              color: primaryColor,
+              size: 22.sp,
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Making a repayment?',
+                  style: TextStyle(
+                    color: darkColor,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  'Keep your borrowing balance updated.',
+                  style: TextStyle(
+                    color: mutedColor,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Material(
+            color: primaryColor,
+            borderRadius: BorderRadius.circular(12.r),
+            child: InkWell(
+              onTap: _recordRepayment,
+              borderRadius: BorderRadius.circular(12.r),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 11.h),
+                child: Text(
+                  'Record',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: fontFamily,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // REPAYMENT HISTORY
+  // ---------------------------------------------------------------------------
+
   Widget _repaymentHistory() {
     return Obx(() {
       final repayments = controller.repayments;
+
       return Container(
-        padding: EdgeInsets.all(18.w),
+        padding: EdgeInsets.all(17.w),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: const Color(0xFFE8EEF3)),
+          border: Border.all(color: borderColor),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF173C45).withValues(alpha: 0.025),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,83 +1042,48 @@ class GetBorrowView extends GetView<GetBorrowController> {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    'Repayment history',
-                    style: TextStyle(
-                      color: const Color(0xFF182337),
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: fontFamily,
-                    ),
+                  child: _sectionHeader(
+                    title: 'Repayment history',
+                    icon: Icons.history_rounded,
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Refresh repayment history',
-                  onPressed: controller.fetchRepayments,
-                  icon: Icon(
-                    Icons.refresh_rounded,
-                    color: primaryColor,
-                    size: 20.sp,
+                Material(
+                  color: const Color(0xFFEAF6F3),
+                  borderRadius: BorderRadius.circular(10.r),
+                  child: InkWell(
+                    onTap: controller.fetchRepayments,
+                    borderRadius: BorderRadius.circular(10.r),
+                    child: SizedBox(
+                      width: 34.w,
+                      height: 34.w,
+                      child: Icon(
+                        Icons.refresh_rounded,
+                        color: primaryColor,
+                        size: 19.sp,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
+            SizedBox(height: 15.h),
             if (controller.isLoadingRepayments.value)
               const Center(
                 child: Padding(
-                  padding: EdgeInsets.all(16),
+                  padding: EdgeInsets.all(20),
                   child: CircularProgressIndicator(color: primaryColor),
                 ),
               )
             else if (controller.repaymentError.value.isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    controller.repaymentError.value,
-                    style: TextStyle(
-                      color: labelColor,
-                      fontSize: 13.sp,
-                      fontFamily: fontFamily,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: controller.fetchRepayments,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              )
+              _repaymentError()
             else if (repayments.isEmpty)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                child: Text(
-                  'No repayments recorded yet.',
-                  style: TextStyle(
-                    color: labelColor,
-                    fontSize: 13.sp,
-                    fontFamily: fontFamily,
-                  ),
-                ),
-              )
+              _emptyRepaymentHistory()
             else
               ...repayments.map(_repaymentTile),
           ],
         ),
       );
     });
-  }
-
-  Future<void> _recordRepayment() async {
-    final result = await Get.toNamed(
-      Routes.BORROWING_REPAYMENT,
-      arguments: Map<String, dynamic>.from(controller.selectedBorrow),
-    );
-    if (result is Map) {
-      controller.applyRepaymentAgreement(Map<String, dynamic>.from(result));
-      await controller.fetchRepayments();
-    } else if (result == true) {
-      await controller.fetchRepayments();
-    }
   }
 
   Widget _repaymentTile(Map<String, dynamic> repayment) {
@@ -461,44 +1093,48 @@ class GetBorrowView extends GetView<GetBorrowController> {
         repayment['amount'] ??
         repayment['paid_amount'] ??
         '0.00';
+
     final date =
         repayment['repayment_date'] ??
         repayment['date'] ??
         repayment['transaction_date'] ??
         repayment['created_at'] ??
         '';
+
     final account =
         repayment['payment_account'] ??
         repayment['paying_account'] ??
         repayment['receiving_account'] ??
         repayment['account'];
+
     final accountName =
         repayment['payment_account_name'] ??
         repayment['paying_account_name'] ??
         repayment['receiving_account_name'] ??
         repayment['account_name'] ??
         (account is Map ? account['name'] : null);
+
     final reference = repayment['reference'];
 
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
+      padding: EdgeInsets.symmetric(vertical: 13.h),
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFFE8EEF3))),
+        border: Border(top: BorderSide(color: borderColor)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 36.w,
-            height: 36.w,
+            width: 39.w,
+            height: 39.w,
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F6F3),
+              color: const Color(0xFFEAF6F3),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Icon(
-              Icons.south_west_rounded,
+              Icons.north_east_rounded,
               color: primaryColor,
-              size: 18.sp,
+              size: 19.sp,
             ),
           ),
           SizedBox(width: 11.w),
@@ -509,47 +1145,112 @@ class GetBorrowView extends GetView<GetBorrowController> {
                 Text(
                   date.toString(),
                   style: TextStyle(
-                    color: const Color(0xFF182337),
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700,
+                    color: darkColor,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w800,
                     fontFamily: fontFamily,
                   ),
                 ),
-                if (accountName != null && accountName.toString().isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(top: 3.h),
-                    child: Text(
-                      accountName.toString(),
-                      style: TextStyle(
-                        color: labelColor,
-                        fontSize: 11.sp,
-                        fontFamily: fontFamily,
-                      ),
+                if (accountName != null &&
+                    accountName.toString().isNotEmpty) ...[
+                  SizedBox(height: 4.h),
+                  Text(
+                    accountName.toString(),
+                    style: TextStyle(
+                      color: labelColor,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: fontFamily,
                     ),
                   ),
-                if (reference != null && reference.toString().isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(top: 3.h),
-                    child: Text(
-                      reference.toString(),
-                      style: TextStyle(
-                        color: mutedColor,
-                        fontSize: 11.sp,
-                        fontFamily: fontFamily,
-                      ),
+                ],
+                if (reference != null && reference.toString().isNotEmpty) ...[
+                  SizedBox(height: 3.h),
+                  Text(
+                    reference.toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: mutedColor,
+                      fontSize: 10.sp,
+                      fontFamily: fontFamily,
                     ),
                   ),
+                ],
               ],
             ),
           ),
           SizedBox(width: 8.w),
-          Text(
-            '${(controller.selectedBorrow['currency'] ?? 'INR').toString().toUpperCase()} $amount',
-            textAlign: TextAlign.end,
-            style: TextStyle(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '-${_formatCurrency(_parseAmount(amount))}',
+                style: TextStyle(
+                  color: primaryColor,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: fontFamily,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                'Paid',
+                style: TextStyle(
+                  color: mutedColor,
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: fontFamily,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyRepaymentHistory() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F9FA),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 47.w,
+            height: 47.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF6F3),
+              borderRadius: BorderRadius.circular(15.r),
+            ),
+            child: Icon(
+              Icons.history_rounded,
               color: primaryColor,
+              size: 24.sp,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            'No repayments yet',
+            style: TextStyle(
+              color: darkColor,
               fontSize: 13.sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
+              fontFamily: fontFamily,
+            ),
+          ),
+          SizedBox(height: 5.h),
+          Text(
+            'Payments made will appear here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: mutedColor,
+              fontSize: 11.sp,
               fontFamily: fontFamily,
             ),
           ),
@@ -557,6 +1258,303 @@ class GetBorrowView extends GetView<GetBorrowController> {
       ),
     );
   }
+
+  Widget _repaymentError() {
+    return Container(
+      padding: EdgeInsets.all(13.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3EF),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFF4D6CB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            controller.repaymentError.value,
+            style: TextStyle(
+              color: const Color(0xFFB45A3B),
+              fontSize: 11.sp,
+              fontFamily: fontFamily,
+            ),
+          ),
+          SizedBox(height: 6.h),
+          TextButton(
+            onPressed: controller.fetchRepayments,
+            child: const Text('Retry', style: TextStyle(color: primaryColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // COMMON WIDGETS
+  // ---------------------------------------------------------------------------
+
+  Widget _sectionHeader({required String title, required IconData icon}) {
+    return Row(
+      children: [
+        Container(
+          width: 31.w,
+          height: 31.w,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF6F3),
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          child: Icon(icon, color: primaryColor, size: 17.sp),
+        ),
+        SizedBox(width: 9.w),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: darkColor,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w800,
+              fontFamily: fontFamily,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _actionButton({
+    required IconData icon,
+    required Color color,
+    required Color background,
+    required Color borderColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(11.r),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(11.r),
+        child: Container(
+          width: 36.w,
+          height: 36.w,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(11.r),
+            border: Border.all(color: borderColor),
+          ),
+          child: Icon(icon, size: 18.sp, color: color),
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // STATUS
+  // ---------------------------------------------------------------------------
+
+  String get _status {
+    final raw = _borrow['status']?.toString() ?? '';
+    final value = raw.toLowerCase();
+
+    if (value.contains('overdue') || value.contains('late')) {
+      return 'Overdue';
+    }
+
+    if (value.contains('paid') ||
+        value.contains('settled') ||
+        value.contains('closed')) {
+      return 'Settled';
+    }
+
+    return raw.isEmpty ? 'Active' : raw.capitalizeFirst!;
+  }
+
+  Color _statusColor(String status) {
+    final value = status.toLowerCase();
+
+    if (value.contains('overdue') || value.contains('late')) {
+      return const Color(0xFFD97732);
+    }
+
+    if (value.contains('paid') ||
+        value.contains('settled') ||
+        value.contains('closed')) {
+      return const Color(0xFF168C6A);
+    }
+
+    return primaryColor;
+  }
+
+  Color _statusBackground(String status) {
+    final value = status.toLowerCase();
+
+    if (value.contains('overdue') || value.contains('late')) {
+      return const Color(0xFFFFF2E6);
+    }
+
+    if (value.contains('paid') ||
+        value.contains('settled') ||
+        value.contains('closed')) {
+      return const Color(0xFFEAF7F0);
+    }
+
+    return const Color(0xFFEAF6F3);
+  }
+
+  // ---------------------------------------------------------------------------
+  // EMPTY / ERROR
+  // ---------------------------------------------------------------------------
+
+  Widget _emptyState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _emptyIcon(Icons.account_balance_wallet_outlined),
+            SizedBox(height: 16.h),
+            Text(
+              'No borrowing record found',
+              style: TextStyle(
+                color: darkColor,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+                fontFamily: fontFamily,
+              ),
+            ),
+            SizedBox(height: 7.h),
+            Text(
+              'This borrowing record may have been removed.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: mutedColor,
+                fontSize: 12.sp,
+                fontFamily: fontFamily,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            TextButton(
+              onPressed: controller.fetchBorrows,
+              child: const Text(
+                'Refresh',
+                style: TextStyle(color: primaryColor),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _errorState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _emptyIcon(Icons.error_outline_rounded),
+            SizedBox(height: 16.h),
+            Text(
+              'Unable to load details',
+              style: TextStyle(
+                color: darkColor,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+                fontFamily: fontFamily,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              controller.errorMessage.value,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: labelColor,
+                fontSize: 12.sp,
+                height: 1.5,
+                fontFamily: fontFamily,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            ElevatedButton(
+              onPressed: controller.fetchBorrows,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+              ),
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyIcon(IconData icon) {
+    return Container(
+      width: 75.w,
+      height: 75.w,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF6F3),
+        borderRadius: BorderRadius.circular(23.r),
+      ),
+      child: Icon(icon, color: primaryColor, size: 35.sp),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // FORMATTERS
+  // ---------------------------------------------------------------------------
+
+  double _parseAmount(dynamic value) {
+    if (value is num) return value.toDouble();
+
+    return double.tryParse(value?.toString().replaceAll(',', '') ?? '') ?? 0;
+  }
+
+  double _firstAmount(List<dynamic> values) {
+    for (final value in values) {
+      if (value != null && value.toString().trim().isNotEmpty) {
+        return _parseAmount(value);
+      }
+    }
+    return 0;
+  }
+
+  String _formatCurrency(double value) {
+    final formatted = value == value.roundToDouble()
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(2);
+
+    return '₹$formatted';
+  }
+
+  // ---------------------------------------------------------------------------
+  // NAVIGATION
+  // ---------------------------------------------------------------------------
+
+  Future<void> _refreshDetails() async {
+    await controller.fetchBorrows();
+    await controller.fetchRepayments();
+  }
+
+  Future<void> _recordRepayment() async {
+    final result = await Get.toNamed(
+      Routes.BORROWING_REPAYMENT,
+      arguments: Map<String, dynamic>.from(_borrow),
+    );
+
+    if (result is Map) {
+      controller.applyRepaymentAgreement(Map<String, dynamic>.from(result));
+      await _refreshDetails();
+    } else if (result == true) {
+      await _refreshDetails();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // EDIT BORROW DIALOG
+  // ---------------------------------------------------------------------------
 
   Future<void> _showEditDialog() async {
     final nameController = TextEditingController(text: controller.personName);
@@ -574,44 +1572,190 @@ class GetBorrowView extends GetView<GetBorrowController> {
     );
 
     try {
-      await Get.dialog<void>(
-        AlertDialog(
-          title: const Text('Update borrow'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _editField(nameController, 'Person name'),
-                _editField(phoneController, 'Phone number'),
-                _editField(amountController, 'Amount'),
-                _editField(interestController, 'Interest rate'),
-                _editField(receiveDateController, 'Receive date (YYYY-MM-DD)'),
-                _editField(returnDateController, 'Return date (YYYY-MM-DD)'),
-                _editField(descriptionController, 'Description'),
-              ],
+      final updated = await Get.dialog<bool>(
+        Dialog(
+          backgroundColor: Colors.white,
+          insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22.r),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(19.w),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38.w,
+                        height: 38.w,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAF6F3),
+                          borderRadius: BorderRadius.circular(11.r),
+                        ),
+                        child: Icon(
+                          Icons.edit_outlined,
+                          color: primaryColor,
+                          size: 19.sp,
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          'Edit borrowing',
+                          style: TextStyle(
+                            color: darkColor,
+                            fontSize: 17.sp,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Get.back(result: false),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: mutedColor,
+                          size: 21.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 7.h),
+                  Text(
+                    'Update the borrowing record details.',
+                    style: TextStyle(
+                      color: mutedColor,
+                      fontSize: 11.sp,
+                      fontFamily: fontFamily,
+                    ),
+                  ),
+                  SizedBox(height: 18.h),
+                  _editField(nameController, 'Person name'),
+                  _editField(
+                    phoneController,
+                    'Phone number',
+                    keyboardType: TextInputType.phone,
+                  ),
+                  _editField(
+                    amountController,
+                    'Borrowed amount',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                  _editField(
+                    interestController,
+                    'Interest',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                  _editField(
+                    receiveDateController,
+                    'Received date (YYYY-MM-DD)',
+                  ),
+                  _editField(returnDateController, 'Return date (YYYY-MM-DD)'),
+                  _editField(descriptionController, 'Description', maxLines: 3),
+                  SizedBox(height: 10.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 44.h,
+                          child: OutlinedButton(
+                            onPressed: () => Get.back(result: false),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: darkColor,
+                              side: const BorderSide(color: borderColor),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: fontFamily,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: SizedBox(
+                          height: 44.h,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (nameController.text.trim().isEmpty) {
+                                _showValidationError(
+                                  'Please enter the person name.',
+                                );
+                                return;
+                              }
+
+                              final amount = double.tryParse(
+                                amountController.text.trim(),
+                              );
+
+                              if (amount == null || amount <= 0) {
+                                _showValidationError(
+                                  'Enter a valid borrowing amount.',
+                                );
+                                return;
+                              }
+
+                              final success = await controller.updateBorrow(
+                                personName: nameController.text.trim(),
+                                phone: phoneController.text.trim(),
+                                amount: amountController.text.trim(),
+                                interest: interestController.text.trim(),
+                                receiveDate: receiveDateController.text.trim(),
+                                returnDate: returnDateController.text.trim(),
+                                description: descriptionController.text.trim(),
+                              );
+
+                              if (success) {
+                                Get.back(result: true);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                            ),
+                            child: Text(
+                              'Save changes',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: fontFamily,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(onPressed: Get.back, child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final updated = await controller.updateBorrow(
-                  personName: nameController.text,
-                  phone: phoneController.text,
-                  amount: amountController.text,
-                  interest: interestController.text,
-                  receiveDate: receiveDateController.text,
-                  returnDate: returnDateController.text,
-                  description: descriptionController.text,
-                );
-                if (updated) Get.back();
-              },
-              child: const Text('Update'),
-            ),
-          ],
         ),
         barrierDismissible: false,
       );
+
+      if (updated == true) {
+        await controller.fetchBorrows();
+        await controller.fetchRepayments();
+      }
     } finally {
       nameController.dispose();
       phoneController.dispose();
@@ -623,131 +1767,190 @@ class GetBorrowView extends GetView<GetBorrowController> {
     }
   }
 
-  Widget _editField(TextEditingController textController, String label) {
+  Widget _editField(
+    TextEditingController textController,
+    String label, {
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.only(bottom: 12.h),
       child: TextField(
         controller: textController,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        style: TextStyle(
+          color: darkColor,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w600,
+          fontFamily: fontFamily,
+        ),
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-      ),
-    );
-  }
-
-  // Edit and delete icon buttons
-  Widget _iconButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(13.r),
-      child: Container(
-        width: 38.w,
-        height: 42.h,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFAFBFC),
-          border: Border.all(color: const Color(0xFFEDF1F6)),
-          borderRadius: BorderRadius.circular(13.r),
-        ),
-        child: Icon(icon, color: color, size: 19.sp),
-      ),
-    );
-  }
-
-  // Date and interest information
-  Widget _infoColumn(String title, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: mutedColor,
-            fontSize: 10.sp,
-            fontWeight: FontWeight.w500,
-            fontFamily: fontFamily,
-          ),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          value,
-          style: TextStyle(
-            color: const Color(0xFF182337),
+          labelStyle: TextStyle(
+            color: labelColor,
             fontSize: 11.sp,
-            fontWeight: FontWeight.w600,
             fontFamily: fontFamily,
           ),
-        ),
-      ],
-    );
-  }
-
-  // App bar
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      backgroundColor: primaryColor,
-      surfaceTintColor: primaryColor,
-      toolbarHeight: 76.h,
-      leadingWidth: 54.w,
-      leading: IconButton(
-        onPressed: Get.back,
-        icon: Icon(Icons.arrow_back, color: Colors.white, size: 21.sp),
-      ),
-      titleSpacing: 0,
-      title: Obx(
-        () => Text(
-          'Details for ${controller.personName.isEmpty ? 'borrow' : controller.personName}',
-          style: TextStyle(
-            fontFamily: fontFamily,
-            fontSize: 17.sp,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
+          filled: true,
+          fillColor: const Color(0xFFF7F9FA),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 13.w,
+            vertical: 13.h,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: const BorderSide(color: borderColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: const BorderSide(color: borderColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: const BorderSide(color: primaryColor, width: 1.2),
           ),
         ),
       ),
-      centerTitle: false,
-      // actions: [
-      //   PopupMenuButton<String>(
-      //     icon: const Icon(Icons.more_vert, color: Colors.white),
-      //     onSelected: (value) {
-      //       if (value == 'edit') {
-      //         Get.snackbar('Edit', 'Open the edit screen here');
-      //       } else if (value == 'delete') {
-      //         _showDeleteDialog();
-      //       }
-      //     },
-      //     itemBuilder: (context) => const [
-      //       PopupMenuItem(value: 'edit', child: Text('Edit')),
-      //       PopupMenuItem(value: 'delete', child: Text('Delete')),
-      //     ],
-      //   ),
-      // ],
     );
   }
 
-  // Delete confirmation dialog
-  void _showDeleteDialog() {
-    Get.defaultDialog(
-      title: 'Delete Lend',
-      middleText: 'Are you sure you want to delete this record?',
-      textCancel: 'Cancel',
-      textConfirm: 'Delete',
-      confirmTextColor: Colors.white,
-      buttonColor: const Color(0xFFFF3151),
-      onConfirm: () {
-        Get.back();
-        Get.snackbar(
-          'Delete',
-          'Connect your delete API here.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      },
+  void _showValidationError(String message) {
+    Get.snackbar(
+      'Check details',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.white,
+      colorText: darkColor,
+      margin: EdgeInsets.all(14.w),
+      borderRadius: 14.r,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // DELETE CONFIRMATION
+  // ---------------------------------------------------------------------------
+
+  Future<void> _showDeleteDialog() async {
+    final confirmed = await Get.dialog<bool>(
+      Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: EdgeInsets.symmetric(horizontal: 28.w),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(23.r),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 55.w,
+                height: 55.w,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF0F0),
+                  borderRadius: BorderRadius.circular(17.r),
+                ),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  color: const Color(0xFFD94D4D),
+                  size: 27.sp,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                'Delete borrowing record?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: darkColor,
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: fontFamily,
+                ),
+              ),
+              SizedBox(height: 9.h),
+              Text(
+                'Are you sure you want to delete this borrowing record? '
+                'This action may affect your financial records.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 12.sp,
+                  height: 1.5,
+                  fontFamily: fontFamily,
+                ),
+              ),
+              SizedBox(height: 22.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 43.h,
+                      child: OutlinedButton(
+                        onPressed: () => Get.back(result: false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: darkColor,
+                          side: const BorderSide(color: borderColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: SizedBox(
+                      height: 43.h,
+                      child: ElevatedButton(
+                        onPressed: () => Get.back(result: true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD94D4D),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Delete',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: fontFamily,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Connect this confirmation to the actual delete API.
+    // Do not show a success message until the API confirms deletion.
+    Get.snackbar(
+      'Delete',
+      'Connect the delete API to remove this borrowing record.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.white,
+      colorText: darkColor,
+      margin: EdgeInsets.all(14.w),
+      borderRadius: 14.r,
     );
   }
 }

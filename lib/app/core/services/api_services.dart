@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
+  static const Duration requestTimeout = Duration(seconds: 30);
+
   ApiService({http.Client? client, AuthCredentialStorage? credentialStorage})
     : _client = client ?? http.Client(),
       _credentialStorage = credentialStorage ?? SecureAuthCredentialStorage();
@@ -53,6 +55,9 @@ class ApiService {
   final http.Client _client;
   final AuthCredentialStorage _credentialStorage;
   Future<String?>? _refreshInProgress;
+
+  Future<T> _withTimeout<T>(Future<T> request) =>
+      request.timeout(requestTimeout);
 
   // ================= SAVE TOKEN =================
 
@@ -192,13 +197,15 @@ class ApiService {
 
     final http.Response response;
     try {
-      response = await _client.post(
-        Uri.parse(refreshTokenUrl),
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({'refresh_token': refreshToken}),
+      response = await _withTimeout(
+        _client.post(
+          Uri.parse(refreshTokenUrl),
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          body: jsonEncode({'refresh_token': refreshToken}),
+        ),
       );
     } catch (_) {
       return null;
@@ -266,10 +273,8 @@ class ApiService {
   }) => _sendWithRefresh((token) {
     final headers = _headersFor(token);
     headers['Idempotency-Key'] = idempotencyKey;
-    return _client.post(
-      Uri.parse(url),
-      headers: headers,
-      body: jsonEncode(body),
+    return _withTimeout(
+      _client.post(Uri.parse(url), headers: headers, body: jsonEncode(body)),
     );
   });
 
@@ -277,10 +282,8 @@ class ApiService {
 
   Future<http.Response> post(String url, Map<String, dynamic> body) async {
     final headers = await getHeaders();
-    return _client.post(
-      Uri.parse(url),
-      headers: headers,
-      body: jsonEncode(body),
+    return _withTimeout(
+      _client.post(Uri.parse(url), headers: headers, body: jsonEncode(body)),
     );
   }
 
@@ -288,13 +291,15 @@ class ApiService {
     String url,
     Map<String, dynamic> body,
   ) async {
-    return _client.post(
-      Uri.parse(url),
-      headers: const {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(body),
+    return _withTimeout(
+      _client.post(
+        Uri.parse(url),
+        headers: const {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
+      ),
     );
   }
 
@@ -305,7 +310,7 @@ class ApiService {
     final request = http.MultipartRequest('POST', Uri.parse(url))
       ..fields.addAll(fields)
       ..headers['Accept'] = 'application/json';
-    return http.Response.fromStream(await request.send());
+    return http.Response.fromStream(await _withTimeout(request.send()));
   }
 
   Future<http.Response> postFormData(
@@ -319,7 +324,7 @@ class ApiService {
     if (token != null && token.isNotEmpty) {
       request.headers['Authorization'] = 'Bearer ' + token;
     }
-    return http.Response.fromStream(await request.send());
+    return http.Response.fromStream(await _withTimeout(request.send()));
   }
 
   Future<http.Response> postCategory(Map<String, dynamic> body) =>
@@ -390,20 +395,22 @@ class ApiService {
   );
 
   Future<http.Response> get(String url) => _sendWithRefresh(
-    (token) => _client.get(Uri.parse(url), headers: _headersFor(token)),
+    (token) =>
+        _withTimeout(_client.get(Uri.parse(url), headers: _headersFor(token))),
   );
   Future<http.Response> put(String url, Map<String, dynamic> body) async {
     final headers = await getHeaders();
-    return _client.put(
-      Uri.parse(url),
-      headers: headers,
-      body: jsonEncode(body),
+    return _withTimeout(
+      _client.put(Uri.parse(url), headers: headers, body: jsonEncode(body)),
     );
   }
 
   Future<http.Response> delete(String url) async {
-    final headers = await getHeaders();
-    return _client.delete(Uri.parse(url), headers: headers);
+    return _sendWithRefresh(
+      (token) => _withTimeout(
+        _client.delete(Uri.parse(url), headers: _headersFor(token)),
+      ),
+    );
   }
 
   Future<http.Response> getAccounts({bool includeArchived = false}) {
@@ -608,6 +615,14 @@ class ApiService {
     body,
     idempotencyKey: idempotencyKey,
   );
+
+  Future<http.Response> updateIncome(
+    String incomeUuid,
+    Map<String, dynamic> body,
+  ) => put('$incomeTransactionsUrl/${Uri.encodeComponent(incomeUuid)}', body);
+
+  Future<http.Response> deleteIncome(String incomeUuid) =>
+      delete('$incomeTransactionsUrl/${Uri.encodeComponent(incomeUuid)}');
 
   Future<http.Response> postLending(
     Map<String, dynamic> body, {

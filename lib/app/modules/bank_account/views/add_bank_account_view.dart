@@ -32,16 +32,10 @@ class _AddBankAccountViewState extends State<AddBankAccountView> {
 
   final _formKey = GlobalKey<FormState>();
   late final ApiService _apiService;
-  final _accountNameController = TextEditingController(
-    text: 'Postman Test Bank',
-  );
-  final _institutionController = TextEditingController(
-    text: 'Postman test data',
-  );
-  final _balanceController = TextEditingController(text: '30000.00');
-  final _notesController = TextEditingController(
-    text: 'Test account created by Postman collection',
-  );
+  final _accountNameController = TextEditingController();
+  final _institutionController = TextEditingController();
+  final _balanceController = TextEditingController(text: '0.00');
+  final _notesController = TextEditingController();
   final _lastFourController = TextEditingController(text: '1234');
   final _purposeController = TextEditingController(text: 'Everyday spending');
   final _minimumDuePercentController = TextEditingController(text: '5.00');
@@ -50,7 +44,7 @@ class _AddBankAccountViewState extends State<AddBankAccountView> {
   String _accountType = 'Bank Account';
   String _currency = 'INR';
   String _network = 'Visa';
-  DateTime _openingDate = DateTime(2026, 10, 14);
+  DateTime _openingDate = DateTime.now();
   bool _allowNegativeBalance = false;
   bool _isCredit = true;
   int _statementDay = 15;
@@ -1141,7 +1135,8 @@ class _AddBankAccountViewState extends State<AddBankAccountView> {
         final createdAccount = Map<String, dynamic>.from(data);
         _pendingIdempotencyKey = null;
         _pendingRequestBody = null;
-        Get.back(result: createdAccount);
+        if (!mounted) return;
+        Navigator.of(context).pop(createdAccount);
         Get.snackbar(
           _isCreditCard ? 'Credit card created' : 'Account created',
           payload['message']?.toString() ??

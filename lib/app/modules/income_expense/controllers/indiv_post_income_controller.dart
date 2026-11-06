@@ -92,14 +92,16 @@ class IndivPostIncomeController extends GetxController {
         'description': noteController.text.trim(),
       };
 
-      final response = await http.post(
-        url,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
-      );
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 30));
 
       final responseData = jsonDecode(response.body);
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:budget_book_2026/app/core/services/api_services.dart';
 import 'package:budget_book_2026/app/core/services/auth_credential_storage.dart';
+import 'package:budget_book_2026/app/routes/app_pages.dart';
 import 'package:budget_book_2026/app/modules/bank_account/controllers/bank_accounts_controller.dart';
 import 'package:budget_book_2026/app/modules/bank_account/controllers/transfers_controller.dart';
 import 'package:budget_book_2026/app/modules/bank_account/views/transfers_section.dart';
@@ -214,7 +215,8 @@ void main() {
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(375, 812),
-        builder: (_, _) => const GetMaterialApp(
+        builder: (_, _) => GetMaterialApp(
+          getPages: AppPages.routes,
           home: Scaffold(
             body: SingleChildScrollView(child: TransfersSection()),
           ),
@@ -227,7 +229,7 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).at(0), '125.50');
     await tester.enterText(find.byType(TextFormField).at(1), 'Rent transfer');
-    await tester.tap(find.text('Transfer'));
+    await tester.tap(find.text('Transfer money'));
     await tester.pumpAndSettle();
 
     final post = requests.singleWhere((request) => request.method == 'POST');

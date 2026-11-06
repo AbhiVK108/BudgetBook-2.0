@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:budget_book_2026/app/core/constants/api_endpoints.dart';
 import 'package:budget_book_2026/app/routes/app_pages.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class RegisterController extends GetxController {
+  static const Duration _requestTimeout = Duration(seconds: 30);
   final isLoading = false.obs;
 
   final usernameController = TextEditingController();
@@ -42,27 +45,32 @@ class RegisterController extends GetxController {
     try {
       isLoading.value = true;
 
-      print("Username: $username");
-      print("Password: $password");
-      print("Confirm Password: $confirmPassword");
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: {
+              'username': username,
+              'password': password,
+              'confirm_password': confirmPassword,
+            },
+          )
+          .timeout(_requestTimeout);
 
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: {
-          'username': username,
-          'password': password,
-          'confirm_password': confirmPassword,
-        },
-      );
-
-      print("Register Status: ${response.statusCode}");
-      print("Register Response: ${response.body}");
-
-      final responseData = jsonDecode(response.body);
+      dynamic responseData = {};
+      if (response.body.trim().isNotEmpty) {
+        try {
+          responseData = jsonDecode(response.body);
+        } on FormatException {
+          throw const FormatException('The server returned invalid data.');
+        }
+      }
+      if (responseData is! Map) {
+        throw const FormatException('The server returned invalid data.');
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         Get.snackbar(
@@ -96,9 +104,12 @@ class RegisterController extends GetxController {
         }
       }
     } catch (e) {
-      print("Register Exception: $e");
-
-      Get.snackbar("Error", "Something went wrong: $e");
+      Get.snackbar(
+        "Error",
+        e is TimeoutException
+            ? "The request timed out. Please try again."
+            : "Unable to connect to the server.",
+      );
     } finally {
       isLoading.value = false;
     }

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:budget_book_2026/app/core/constants/api_endpoints.dart';
 import 'package:budget_book_2026/app/core/services/api_services.dart';
+import 'package:budget_book_2026/app/core/services/income_category_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,6 +12,8 @@ class PostIncomeController extends GetxController {
     : apiService = apiService ?? ApiService();
 
   final ApiService apiService;
+  late final IncomeCategoryService _incomeCategoryService =
+      IncomeCategoryService(apiService: apiService);
 
   static const String categoryUrl = '${ApiEndpoints.categoriesUrl}?type=income';
 
@@ -40,6 +43,8 @@ class PostIncomeController extends GetxController {
   final selectedDate = ''.obs;
 
   final isSavingIncome = false.obs;
+  final isEditingIncome = false.obs;
+  final editingIncomeUuid = RxnString();
   String? _pendingIncomeIdempotencyKey;
   String? _pendingIncomeRequestBody;
 
@@ -51,8 +56,98 @@ class PostIncomeController extends GetxController {
 
     selectedDate.value = _formatDate(DateTime.now());
 
-    getIncomeCategories();
-    getDestinationAccounts();
+    _initializeForm();
+  }
+
+  Future<void> _initializeForm() async {
+    final arguments = Get.arguments;
+    if (arguments is Map && arguments['isEdit'] == true) {
+      _populateEditForm(Map<String, dynamic>.from(arguments));
+    }
+
+    await Future.wait([getIncomeCategories(), getDestinationAccounts()]);
+    if (isEditingIncome.value) {
+      _applyEditSelections();
+    }
+  }
+
+  void _populateEditForm(Map<String, dynamic> income) {
+    final uuid =
+        (income['uuid'] ?? income['income_uuid'] ?? income['transaction_uuid'])
+            ?.toString()
+            .trim();
+    if (uuid == null || uuid.isEmpty) return;
+
+    isEditingIncome.value = true;
+    editingIncomeUuid.value = uuid;
+    amountController.text = income['amount']?.toString() ?? '';
+    counterpartyController.text =
+        (income['counterparty'] ?? income['payer'])?.toString() ?? '';
+    noteController.text =
+        (income['description'] ?? income['note'])?.toString() ?? '';
+
+    final date =
+        (income['transaction_date'] ??
+                income['income_date'] ??
+                income['incomeDate'] ??
+                income['date'])
+            ?.toString()
+            .trim();
+    if (date != null && date.isNotEmpty) {
+      selectedDate.value = date.length >= 10 ? date.substring(0, 10) : date;
+    }
+
+    selectedCategoryId.value = _nestedUuid(income, [
+      'category_uuid',
+      'income_category_uuid',
+    ], nestedKey: 'category');
+    selectedDestinationAccountUuid.value = _nestedUuid(income, [
+      'destination_account_uuid',
+      'account_uuid',
+      'bank_account_uuid',
+    ], nestedKey: 'destination_account');
+  }
+
+  String? _nestedUuid(
+    Map<String, dynamic> source,
+    List<String> keys, {
+    required String nestedKey,
+  }) {
+    for (final key in keys) {
+      final value = source[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) return value;
+    }
+    final nested = source[nestedKey];
+    if (nested is Map) {
+      final value =
+          (nested['uuid'] ?? nested['account_uuid'] ?? nested['category_uuid'])
+              ?.toString()
+              .trim();
+      if (value != null && value.isNotEmpty) return value;
+    }
+    return null;
+  }
+
+  void _applyEditSelections() {
+    final categoryUuid = selectedCategoryId.value;
+    if (categoryUuid != null) {
+      final categoryIndex = categories.indexWhere(
+        (category) =>
+            (category['uuid'] ?? category['category_uuid'])?.toString() ==
+            categoryUuid,
+      );
+      if (categoryIndex >= 0) selectCategory(categoryIndex);
+    }
+
+    final accountUuid = selectedDestinationAccountUuid.value;
+    if (accountUuid != null) {
+      final account = accounts.firstWhere(
+        (item) =>
+            (item['uuid'] ?? item['account_uuid'])?.toString() == accountUuid,
+        orElse: () => <String, dynamic>{},
+      );
+      if (account.isNotEmpty) selectDestinationAccount(account);
+    }
   }
 
   // ============================================================
@@ -168,23 +263,10 @@ class PostIncomeController extends GetxController {
 
     try {
       isCreatingCategory.value = true;
-      final response = await apiService.postCategory({
-        'name': trimmedName,
-        'type': 'income',
-        'icon': icon,
-        'sort_order': 100,
-      });
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        return null;
-      }
-
-      final decoded = jsonDecode(response.body);
-      if (decoded is! Map || decoded['success'] != true) return null;
-      final data = decoded['data'];
-      if (data is! Map) return null;
-
-      final category = Map<String, dynamic>.from(data);
+      final category = await _incomeCategoryService.create(
+        name: trimmedName,
+        icon: icon,
+      );
       final uuid = category['uuid']?.toString();
       if (uuid == null || uuid.isEmpty) return null;
 
@@ -448,15 +530,25 @@ class PostIncomeController extends GetxController {
         _pendingIncomeRequestBody = encodedRequestBody;
       }
 
+      final isEditing =
+          isEditingIncome.value &&
+          editingIncomeUuid.value != null &&
+          editingIncomeUuid.value!.isNotEmpty;
+
       if (kDebugMode) {
-        debugPrint('[Income] POST ${ApiService.incomeTransactionsUrl}');
+        debugPrint(
+          '[Income] ${isEditing ? 'PUT' : 'POST'} '
+          '${isEditing ? '${ApiService.incomeTransactionsUrl}/${editingIncomeUuid.value}' : ApiService.incomeTransactionsUrl}',
+        );
         debugPrint('[Income] Request body: $encodedRequestBody');
       }
 
-      final response = await apiService.postIncome(
-        requestBody,
-        idempotencyKey: _pendingIncomeIdempotencyKey!,
-      );
+      final response = isEditing
+          ? await apiService.updateIncome(editingIncomeUuid.value!, requestBody)
+          : await apiService.postIncome(
+              requestBody,
+              idempotencyKey: _pendingIncomeIdempotencyKey!,
+            );
       if (kDebugMode) {
         debugPrint('[Income] HTTP ${response.statusCode}');
         debugPrint('[Income] Response body: ${response.body}');
@@ -486,7 +578,10 @@ class PostIncomeController extends GetxController {
         _pendingIncomeRequestBody = null;
         Get.snackbar(
           'Success',
-          data['message']?.toString() ?? 'Income saved successfully',
+          data['message']?.toString() ??
+              (isEditing
+                  ? 'Income updated successfully'
+                  : 'Income saved successfully'),
           snackPosition: SnackPosition.BOTTOM,
         );
 
@@ -499,7 +594,7 @@ class PostIncomeController extends GetxController {
         selectedCategoryId.value = null;
         selectedDestinationAccountUuid.value = null;
 
-        Get.back(result: true);
+        _closePostIncomePage();
       }
       // ================= UNAUTHORIZED =================
       else if (response.statusCode == 401) {
@@ -539,6 +634,20 @@ class PostIncomeController extends GetxController {
     } finally {
       isSavingIncome.value = false;
     }
+  }
+
+  void _closePostIncomePage() {
+    final context = Get.context;
+    final navigator = context == null
+        ? null
+        : Navigator.maybeOf(context, rootNavigator: true);
+
+    if (navigator != null && navigator.canPop()) {
+      navigator.pop(true);
+      return;
+    }
+
+    Get.back(result: true);
   }
 
   String _formatBackendErrors(dynamic errors) {

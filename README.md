@@ -56,3 +56,29 @@ After Firebase confirms the SMS code, the app obtains the Firebase ID token and
 posts it to `https://api.budgetbook.in/api/v1/auth/firebase/verify` with the
 entered name as `full_name`. The backend access token from that response is
 stored for subsequent API calls.
+
+## Application maintenance mode
+
+Maintenance is controlled from **Firebase Console > Remote Config > Add
+parameter**. Create these parameters:
+
+| Parameter key | Type | Default |
+| --- | --- | --- |
+| `maintenance_mode` | Boolean | `false` |
+| `maintenance_title` | String | `We'll Be Back Soon!` |
+| `maintenance_message` | String | `We're currently performing scheduled maintenance to improve your experience. Please check back soon.` |
+| `maintenance_button_text` | String | `Try Again` |
+
+Publish the parameter changes, then enable maintenance by setting
+`maintenance_mode` to `true`. Publish again and set it to `false` to restore
+normal navigation. Installed apps fetch the configuration at launch and when
+they return to the foreground. Firebase real-time Remote Config updates are
+also handled when available. Fetches are cached for 15 minutes in production;
+Firebase may delay delivery due to caching and Remote Config throttling.
+
+For testing, call the console's real-time changes preview and use a debug build.
+If an app cannot reach Firebase, it uses the last successfully activated
+configuration. On a first installation with no cached activation, it uses the
+safe defaults with `maintenance_mode` set to `false`. Offline Remote Config
+failure therefore does not block startup. Firebase initialization and fetch
+operations are bounded by startup/fetch timeouts.

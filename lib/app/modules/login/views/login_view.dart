@@ -272,6 +272,60 @@ class LoginView extends GetView<LoginController> {
                     ),
                   ),
                   SizedBox(height: 16.h),
+                  Obx(
+                    () => TextButton(
+                      onPressed: () {
+                        controller.showPasswordLogin.value =
+                            !controller.showPasswordLogin.value;
+                      },
+                      child: Text(
+                        controller.showPasswordLogin.value
+                            ? 'Use phone verification'
+                            : 'Use username and password',
+                      ),
+                    ),
+                  ),
+                  Obx(() {
+                    if (!controller.showPasswordLogin.value) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                          controller: controller.usernameController,
+                          textInputAction: TextInputAction.next,
+                          decoration: _decoration(
+                            label: 'Username',
+                            hint: 'Enter username',
+                            icon: Icons.person_outline_rounded,
+                          ),
+                        ),
+                        SizedBox(height: 13.h),
+                        TextField(
+                          controller: controller.passwordController,
+                          obscureText: true,
+                          onSubmitted: (_) => controller.loginUser(),
+                          decoration: _decoration(
+                            label: 'Password',
+                            hint: 'Enter password',
+                            icon: Icons.lock_outline_rounded,
+                          ),
+                        ),
+                        SizedBox(height: 13.h),
+                        FilledButton(
+                          onPressed: controller.isLoading.value
+                              ? null
+                              : controller.loginUser,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: _primary,
+                            minimumSize: Size.fromHeight(50.h),
+                          ),
+                          child: const Text('Sign in'),
+                        ),
+                      ],
+                    );
+                  }),
                   Text(
                     'Your phone number is verified securely by Firebase.',
                     textAlign: TextAlign.center,

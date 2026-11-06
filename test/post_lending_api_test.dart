@@ -94,6 +94,7 @@ void main() {
       ),
     );
     final postRoute = Get.to(() => const PostLendView());
+    expect(postRoute, isNotNull);
     await tester.pumpAndSettle();
     expect(find.text('Borrower name'), findsOneWidget);
     expect(find.text('Interest income category'), findsOneWidget);
@@ -109,7 +110,8 @@ void main() {
     controller.descriptionController.text = 'Phase 4 test';
 
     await controller.postLend();
-    await postRoute;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     final request = requests.singleWhere((item) => item.method == 'POST');
     expect(request.url.toString(), ApiService.lendingUrl);
@@ -127,10 +129,9 @@ void main() {
       'notes': 'Phase 4 test',
     });
 
-    await tester.pumpAndSettle();
     expect(find.text('Lending list'), findsOneWidget);
+    Get.closeAllSnackbars();
     await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
     Get.reset();
   });
 }

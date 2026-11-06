@@ -71,6 +71,10 @@ void main() {
     Get.to(() => AddBankAccountView(apiService: api));
     await tester.pumpAndSettle();
 
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'Postman Test Bank',
+    );
     await tester.tap(find.text('Save Bank Account'));
     await tester.pumpAndSettle();
 
@@ -86,12 +90,13 @@ void main() {
     expect(jsonDecode(request.body), {
       'name': 'Postman Test Bank',
       'type': 'bank',
-      'institution': 'Postman test data',
+      'institution': '',
       'currency': 'INR',
-      'opening_balance': '30000.00',
-      'opening_balance_date': '2026-10-14',
+      'opening_balance': '0.00',
+      'opening_balance_date':
+          '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}',
       'allow_negative': false,
-      'notes': 'Test account created by Postman collection',
+      'notes': '',
     });
     expect(find.text('Account list'), findsOneWidget);
     Get.closeAllSnackbars();

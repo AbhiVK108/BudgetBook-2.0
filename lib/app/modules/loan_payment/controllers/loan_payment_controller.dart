@@ -406,11 +406,8 @@ class LoanPaymentController extends GetxController {
       return false;
     }
     final installmentUuidValue = selectedInstallmentUuid.value;
-    if (installmentUuidValue == null ||
-        !installments.any(
-          (installment) => installmentUuid(installment) == installmentUuidValue,
-        )) {
-      _showMessage('Required', 'Select an unpaid loan installment.');
+    if (installmentUuidValue == null || installmentUuidValue.isEmpty) {
+      _showMessage('Required', 'Select the installment for this payment.');
       return false;
     }
 

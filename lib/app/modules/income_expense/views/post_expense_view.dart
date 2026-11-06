@@ -1,6 +1,7 @@
 import 'package:budget_book_2026/app/core/theme/app_colors.dart';
 import 'package:budget_book_2026/app/modules/home/widgets/home_widget.dart';
 import 'package:budget_book_2026/app/modules/income_expense/controllers/post_expense_controller.dart';
+import 'package:budget_book_2026/app/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -43,7 +44,7 @@ class PostExpenseView extends GetView<PostExpenseController> {
         actions: [
           IconButton(
             tooltip: 'Add expense category',
-            onPressed: _showAddCategoryDialog,
+            onPressed: _openAddExpenseCategory,
             icon: Icon(
               Icons.add_circle_outline_rounded,
               color: AppColors.primaryTeal,
@@ -74,7 +75,7 @@ class PostExpenseView extends GetView<PostExpenseController> {
                       'Expense category',
                       'Choose what you spent money on',
                       trailing: TextButton.icon(
-                        onPressed: _showAddCategoryDialog,
+                        onPressed: _openAddExpenseCategory,
                         icon: Icon(Icons.add_rounded, size: 17.sp),
                         label: const Text('Add new'),
                         style: TextButton.styleFrom(
@@ -115,7 +116,6 @@ class PostExpenseView extends GetView<PostExpenseController> {
                 ),
               ),
             ),
-
             _buildBottomAction(),
           ],
         ),
@@ -263,7 +263,7 @@ class PostExpenseView extends GetView<PostExpenseController> {
                 ),
               ),
               TextButton(
-                onPressed: _showAddCategoryDialog,
+                onPressed: _openAddExpenseCategory,
                 child: const Text('Add'),
               ),
             ],
@@ -825,7 +825,28 @@ class PostExpenseView extends GetView<PostExpenseController> {
   // ADD EXPENSE CATEGORY DIALOG
   // --------------------------------------------------
 
-  Future<void> _showAddCategoryDialog() async {
+  Future<void> _openAddExpenseCategory() async {
+    final result = await Get.toNamed(Routes.ADD_EXPENSE_CATEGORY);
+    if (result is! Map) return;
+
+    final category = Map<String, dynamic>.from(result);
+    final uuid =
+        (category['uuid'] ?? category['category_uuid'])?.toString() ?? '';
+    if (uuid.isEmpty) return;
+
+    final existingIndex = controller.categories.indexWhere(
+      (item) => (item['uuid'] ?? item['category_uuid'])?.toString() == uuid,
+    );
+    if (existingIndex >= 0) {
+      controller.categories[existingIndex] = category;
+      controller.selectCategory(existingIndex);
+    } else {
+      controller.categories.add(category);
+      controller.selectCategory(controller.categories.length - 1);
+    }
+  }
+
+  Future<void> _legacyAddExpenseCategoryDialog() async {
     final nameController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 

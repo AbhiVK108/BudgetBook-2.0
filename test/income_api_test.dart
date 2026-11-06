@@ -75,6 +75,26 @@ void main() {
     },
   );
 
+  test('deletes a v1 income transaction by UUID', () async {
+    final storage = _MemoryCredentialStorage()
+      ..values['accessToken'] = 'saved-access-token';
+    late http.Request request;
+    final api = ApiService(
+      credentialStorage: storage,
+      client: MockClient((incoming) async {
+        request = incoming;
+        return http.Response('', 204);
+      }),
+    );
+
+    final response = await api.deleteIncome('income transaction uuid');
+
+    expect(response.statusCode, 204);
+    expect(request.method, 'DELETE');
+    expect(request.url.path, '/api/v1/income/income%20transaction%20uuid');
+    expect(request.headers['Authorization'], isNotEmpty);
+  });
+
   test('posts v1 income with UUID fields and Bearer token', () async {
     final storage = _MemoryCredentialStorage()
       ..values['accessToken'] = 'saved-access-token';
@@ -123,6 +143,48 @@ void main() {
       'category_uuid': 'income-category-uuid',
       'counterparty': 'Postman test payer',
       'description': 'Postman test income',
+    });
+  });
+
+  test('updates v1 income at its transaction UUID with PUT', () async {
+    final storage = _MemoryCredentialStorage()
+      ..values['accessToken'] = 'saved-access-token';
+    late http.Request request;
+    final api = ApiService(
+      credentialStorage: storage,
+      client: MockClient((incoming) async {
+        request = incoming;
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'status': 200,
+            'message': 'Income transaction updated successfully.',
+          }),
+          200,
+        );
+      }),
+    );
+
+    final response = await api.updateIncome('income-transaction-uuid', {
+      'amount': '30500.00',
+      'transaction_date': '2026-10-14',
+      'destination_account_uuid': 'bank-account-uuid',
+      'category_uuid': 'income-category-uuid',
+      'counterparty': 'Postman test payer',
+      'description': 'Corrected Postman test income',
+    });
+
+    expect(response.statusCode, 200);
+    expect(request.method, 'PUT');
+    expect(request.url.path, '/api/v1/income/income-transaction-uuid');
+    expect(request.headers['Authorization'], 'Bearer saved-access-token');
+    expect(jsonDecode(request.body), {
+      'amount': '30500.00',
+      'transaction_date': '2026-10-14',
+      'destination_account_uuid': 'bank-account-uuid',
+      'category_uuid': 'income-category-uuid',
+      'counterparty': 'Postman test payer',
+      'description': 'Corrected Postman test income',
     });
   });
 

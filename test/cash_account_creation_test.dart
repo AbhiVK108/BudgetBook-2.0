@@ -65,6 +65,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Add Cash Account'), findsOneWidget);
+    await tester.enterText(
+      find.byType(TextFormField).last,
+      'Test account created by Postman collection',
+    );
     await tester.tap(find.text('Save Cash Account'));
     await tester.pumpAndSettle();
 

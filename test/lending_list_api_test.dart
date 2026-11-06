@@ -114,8 +114,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Lend'), findsOneWidget);
-    expect(find.text('Lending summary'), findsOneWidget);
+    expect(find.text('Lending'), findsOneWidget);
+    expect(find.text('Lending overview'), findsOneWidget);
     expect(find.text('Active records'), findsOneWidget);
     expect(find.text('Overdue'), findsOneWidget);
     expect(find.text('INR'), findsOneWidget);
@@ -123,8 +123,8 @@ void main() {
     expect(find.text('Total due'), findsOneWidget);
     expect(find.text('550.00'), findsNWidgets(2));
     expect(find.text('Jamie Example'), findsOneWidget);
-    expect(find.text('Principal: ₹5000'), findsOneWidget);
-    expect(find.text('Lent: 2026-10-01'), findsOneWidget);
+    expect(find.text('Principal ₹5000'), findsOneWidget);
+    expect(find.text('2026-10-01'), findsOneWidget);
     expect(find.text('₹4000'), findsOneWidget);
     expect(find.text('active'), findsOneWidget);
     expect(Get.find<LendController>().totalRecords.value, 2);

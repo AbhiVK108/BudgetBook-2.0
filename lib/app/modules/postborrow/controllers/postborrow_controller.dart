@@ -14,6 +14,7 @@ class PostborrowController extends GetxController {
   final accounts = <Map<String, dynamic>>[].obs;
   final isLoadingCategories = false.obs;
   final isLoadingAccounts = false.obs;
+  final isCreatingCategory = false.obs;
   final categoryLoadError = ''.obs;
   final accountLoadError = ''.obs;
   final selectedInterestCategoryUuid = RxnString();
@@ -130,6 +131,45 @@ class PostborrowController extends GetxController {
       debugPrint('BORROWING ACCOUNT LOAD ERROR: $error');
     } finally {
       isLoadingAccounts.value = false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> createExpenseCategory({
+    required String name,
+    required String icon,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty || isCreatingCategory.value) return null;
+
+    try {
+      isCreatingCategory.value = true;
+      final response = await apiService.postCategory({
+        'name': trimmedName,
+        'type': 'expense',
+        'icon': icon,
+        'sort_order': 100,
+      });
+      final decoded = _decodeResponse(response);
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          decoded['success'] != true) {
+        return null;
+      }
+
+      final data = decoded['data'];
+      if (data is! Map) return null;
+      final category = Map<String, dynamic>.from(data);
+      final uuid = categoryUuid(category);
+      if (uuid.isEmpty) return null;
+
+      categories.add(category);
+      selectedInterestCategoryUuid.value = uuid;
+      return category;
+    } catch (error) {
+      debugPrint('BORROWING CATEGORY CREATE ERROR: $error');
+      return null;
+    } finally {
+      isCreatingCategory.value = false;
     }
   }
 
@@ -317,7 +357,11 @@ class PostborrowController extends GetxController {
         clearForm();
         _pendingBorrowingIdempotencyKey = null;
         _pendingBorrowingRequestBody = null;
-        if (Get.key.currentState?.canPop() ?? false) Get.back();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (Get.key.currentState?.canPop() ?? false) {
+            Get.back(result: true);
+          }
+        });
         return;
       }
 

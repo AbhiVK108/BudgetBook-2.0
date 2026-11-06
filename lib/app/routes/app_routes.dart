@@ -40,6 +40,8 @@ abstract class Routes {
   static const CREATE_BUDGET = _Paths.CREATE_BUDGET;
   static const BUDGET_SPENDING = _Paths.BUDGET_SPENDING;
   static const BUDGET_SPENDING_HOME = _Paths.BUDGET_SPENDING_HOME;
+  static const ADD_INCOME_CATEGORY = _Paths.ADD_INCOME_CATEGORY;
+  static const ADD_EXPENSE_CATEGORY = _Paths.ADD_EXPENSE_CATEGORY;
 }
 
 abstract class _Paths {
@@ -81,4 +83,6 @@ abstract class _Paths {
   static const CREATE_BUDGET = '/create-budget';
   static const BUDGET_SPENDING = '/budget-spending/:budgetUuid';
   static const BUDGET_SPENDING_HOME = '/budget-spending';
+  static const ADD_INCOME_CATEGORY = '/add-income-category';
+  static const ADD_EXPENSE_CATEGORY = '/add-expense-category';
 }

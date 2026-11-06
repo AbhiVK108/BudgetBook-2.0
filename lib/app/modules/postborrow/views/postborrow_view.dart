@@ -2,217 +2,263 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import '../../../routes/app_pages.dart';
 import '../controllers/postborrow_controller.dart';
 
 class PostborrowView extends GetView<PostborrowController> {
   const PostborrowView({super.key});
 
-  static const Color primary = Color(0xFF079B8D);
-  static const Color dark = Color(0xFF263445);
-  static const Color hint = Color(0xFF94A3B8);
-  static const Color border = Color(0xFFE2EAF0);
-  static const Color background = Color(0xFFF3F5F5);
-  static const Color fieldBackground = Color(0xFFF7F9FB);
-  static const Color mintBorder = Color(0xFFBCEBE4);
+  static const Color _teal = Color(0xFF0F8F7F);
+  static const Color _ink = Color(0xFF172B3A);
+  static const Color _muted = Color(0xFF87949F);
+  static const Color _background = Color(0xFFF4F7F8);
+  static const Color _border = Color(0xFFE8EEEE);
+  static const Color _fieldBackground = Color(0xFFF8FAFA);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: background,
+      backgroundColor: _background,
+      appBar: _buildAppBar(),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _section([
-                      _label('Lender name'),
-                      SizedBox(height: 8.h),
-                      _input(
-                        controller.personController,
-                        hint: 'Person name',
-                        icon: Icons.person_outline,
-                        capitalization: TextCapitalization.words,
-                      ),
-                      _helper('Enter the person or business you borrowed from'),
-                      SizedBox(height: 14.h),
-                      _label('Mobile number (optional)'),
-                      SizedBox(height: 8.h),
-                      _input(
-                        controller.phoneController,
-                        hint: '98765 43210',
-                        icon: Icons.phone_outlined,
-                        prefixText: '+91  ',
-                        keyboardType: TextInputType.phone,
-                        maxLength: 10,
-                      ),
-                      _helper('Add a 10-digit number if you want to record it'),
-                    ]),
-                    SizedBox(height: 16.h),
-                    _section([
-                      _label('Principal amount'),
-                      SizedBox(height: 8.h),
-                      _input(
-                        controller.amountController,
-                        hint: '0.00',
-                        icon: Icons.currency_rupee,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                      _helper('Enter the amount you are borrowing'),
-                      SizedBox(height: 14.h),
-                      _label('Interest method'),
-                      SizedBox(height: 8.h),
-                      _readOnlyField('Fixed interest'),
-                      _helper('Fixed amount due in addition to the principal'),
-                      SizedBox(height: 12.h),
-                      _label('Fixed interest amount'),
-                      SizedBox(height: 8.h),
-                      _input(
-                        controller.interestController,
-                        hint: '0.00',
-                        icon: Icons.currency_rupee,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                      _helper('Enter the total fixed interest amount'),
-                    ]),
-                    SizedBox(height: 16.h),
-                    _section([
-                      _label('Interest expense category'),
-                      SizedBox(height: 8.h),
-                      _categorySelector(),
-                      _helper(
-                        'Choose the expense category for borrowing interest',
-                      ),
-                      SizedBox(height: 12.h),
-                      _label('Receiving account'),
-                      SizedBox(height: 8.h),
-                      _accountSelector(),
-                      _helper('The account receiving the borrowed amount'),
-                    ]),
-                    SizedBox(height: 16.h),
-                    _section([
-                      _label('Borrowing date'),
-                      SizedBox(height: 8.h),
-                      Obx(
-                        () => _dateField(
-                          controller.receiveDate.value,
-                          () => controller.selectReceiveDate(context),
-                        ),
-                      ),
-                      _helper('Select when you receive the borrowed amount'),
-                      SizedBox(height: 14.h),
-                      _label('Expected repayment date'),
-                      SizedBox(height: 8.h),
-                      Obx(
-                        () => _dateField(
-                          controller.returnDate.value,
-                          () => controller.selectReturnDate(context),
-                        ),
-                      ),
-                      _helper('Select when you expect to repay'),
-                    ]),
-                    SizedBox(height: 16.h),
-                    _section([
-                      _label('Notes (optional)'),
-                      SizedBox(height: 8.h),
-                      TextField(
-                        controller: controller.descriptionController,
-                        maxLines: 4,
-                        minLines: 3,
-                        textCapitalization: TextCapitalization.sentences,
-                        style: _fieldTextStyle(),
-                        decoration: _decoration(
-                          hint: 'Add the purpose or agreement details...',
-                        ),
-                      ),
-                      _helper('Optional details saved with this borrowing'),
-                    ]),
-                    SizedBox(height: 20.h),
-                    Obx(
-                      () => SizedBox(
-                        height: 52.h,
-                        child: ElevatedButton.icon(
-                          onPressed: controller.isLoading.value
-                              ? null
-                              : controller.postBorrow,
-                          icon: controller.isLoading.value
-                              ? SizedBox(
-                                  width: 20.w,
-                                  height: 20.w,
-                                  child: const CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.save_outlined),
-                          label: Text(
-                            controller.isLoading.value
-                                ? 'Saving...'
-                                : 'Save Borrowing',
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primary,
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: primary.withValues(
-                              alpha: 0.6,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                            textStyle: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w700,
-                              fontFamily: 'HankenGrotesk',
-                            ),
-                          ),
-                        ),
+        top: false,
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 28.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _section(
+                title: 'Lender details',
+                subtitle: 'Who are you borrowing money from?',
+                icon: Icons.person_outline_rounded,
+                children: [
+                  _label('Lender name'),
+                  SizedBox(height: 6.h),
+                  _input(
+                    controller.personController,
+                    hint: 'Enter person or business name',
+                    icon: Icons.person_outline_rounded,
+                    capitalization: TextCapitalization.words,
+                  ),
+                  _helper('Enter the person or business you borrowed from'),
+                  SizedBox(height: 12.h),
+                  _label('Mobile number', optional: true),
+                  SizedBox(height: 6.h),
+                  _input(
+                    controller.phoneController,
+                    hint: '98765 43210',
+                    icon: Icons.phone_outlined,
+                    prefixText: '+91  ',
+                    keyboardType: TextInputType.phone,
+                    maxLength: 10,
+                  ),
+                  _helper('Add a number for quick contact'),
+                ],
+              ),
+
+              SizedBox(height: 12.h),
+
+              _section(
+                title: 'Amount & interest',
+                subtitle: 'Set the borrowed amount and interest',
+                icon: Icons.account_balance_wallet_outlined,
+                children: [
+                  _label('Principal amount'),
+                  SizedBox(height: 6.h),
+                  _input(
+                    controller.amountController,
+                    hint: '0.00',
+                    icon: Icons.currency_rupee_rounded,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                  _helper('Enter the amount you are borrowing'),
+                  SizedBox(height: 12.h),
+                  _label('Interest method'),
+                  SizedBox(height: 6.h),
+                  _readOnlyField('Fixed interest', icon: Icons.percent_rounded),
+                  _helper('A fixed amount added to the principal'),
+                  SizedBox(height: 12.h),
+                  _label('Fixed interest amount'),
+                  SizedBox(height: 6.h),
+                  _input(
+                    controller.interestController,
+                    hint: '0.00',
+                    icon: Icons.currency_rupee_rounded,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                  _helper('Enter the total fixed interest amount'),
+                ],
+              ),
+
+              SizedBox(height: 12.h),
+
+              _section(
+                title: 'Financial details',
+                subtitle: 'Choose where the transaction belongs',
+                icon: Icons.account_balance_outlined,
+                children: [
+                  _label('Interest expense category'),
+                  SizedBox(height: 6.h),
+                  _categorySelector(),
+                  _helper('Select the category for borrowing interest'),
+                  SizedBox(height: 12.h),
+                  _label('Receiving account'),
+                  SizedBox(height: 6.h),
+                  _accountSelector(),
+                  _helper('Account receiving the borrowed amount'),
+                ],
+              ),
+
+              SizedBox(height: 12.h),
+
+              _section(
+                title: 'Borrowing schedule',
+                subtitle: 'Set the borrowing and repayment dates',
+                icon: Icons.calendar_month_outlined,
+                children: [
+                  _label('Borrowing date'),
+                  SizedBox(height: 6.h),
+                  Obx(
+                    () => _dateField(
+                      date: controller.receiveDate.value,
+                      onTap: () => controller.selectReceiveDate(context),
+                    ),
+                  ),
+                  _helper('When you receive the borrowed amount'),
+                  SizedBox(height: 12.h),
+                  _label('Expected repayment date'),
+                  SizedBox(height: 6.h),
+                  Obx(
+                    () => _dateField(
+                      date: controller.returnDate.value,
+                      onTap: () => controller.selectReturnDate(context),
+                    ),
+                  ),
+                  _helper('When you expect to repay the amount'),
+                ],
+              ),
+
+              SizedBox(height: 12.h),
+
+              _section(
+                title: 'Additional notes',
+                subtitle: 'Add any useful agreement details',
+                icon: Icons.notes_rounded,
+                children: [
+                  _label('Notes', optional: true),
+                  SizedBox(height: 6.h),
+                  TextField(
+                    controller: controller.descriptionController,
+                    maxLines: 4,
+                    minLines: 3,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: _fieldTextStyle(),
+                    decoration: _decoration(
+                      hint: 'Add purpose or agreement details...',
+                    ),
+                  ),
+                  _helper('Optional details saved with this borrowing'),
+                ],
+              ),
+
+              SizedBox(height: 18.h),
+
+              Obx(
+                () => SizedBox(
+                  height: 49.h,
+                  child: ElevatedButton(
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : controller.postBorrow,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _teal,
+                      disabledBackgroundColor: _teal.withValues(alpha: 0.6),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(13.r),
                       ),
                     ),
-                  ],
+                    child: controller.isLoading.value
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 18.w,
+                                height: 18.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 10.w),
+                              Text('Saving...', style: _buttonTextStyle()),
+                            ],
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.save_outlined, size: 19.sp),
+                              SizedBox(width: 9.w),
+                              Text('Save borrowing', style: _buttonTextStyle()),
+                            ],
+                          ),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildAppBar() {
-    return Container(
-      height: 58.h,
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: primary,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(10.r),
-          bottomRight: Radius.circular(10.r),
-        ),
+  // ---------------------------------------------------------------------------
+  // APP BAR
+  // ---------------------------------------------------------------------------
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      toolbarHeight: 66.h,
+      leadingWidth: 48.w,
+      leading: IconButton(
+        onPressed: Get.back,
+        splashRadius: 22.r,
+        icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18.sp, color: _ink),
       ),
-      child: Row(
+      titleSpacing: 4.w,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: Get.back,
-            child: Icon(Icons.arrow_back, color: Colors.white, size: 24.sp),
-          ),
-          SizedBox(width: 16.w),
           Text(
-            'Borrowing',
+            'MONEY IN',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w700,
               fontFamily: 'HankenGrotesk',
+              fontSize: 9.sp,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.5,
+              color: _teal,
+            ),
+          ),
+          SizedBox(height: 3.h),
+          Text(
+            'Add borrowing',
+            style: TextStyle(
+              fontFamily: 'HankenGrotesk',
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w800,
+              color: _ink,
+              height: 1,
             ),
           ),
         ],
@@ -220,36 +266,113 @@ class PostborrowView extends GetView<PostborrowController> {
     );
   }
 
-  Widget _section(List<Widget> children) => Container(
-    width: double.infinity,
-    padding: EdgeInsets.all(16.w),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(11.r),
-      border: Border.all(color: mintBorder, width: 0.8),
-      boxShadow: [
-        BoxShadow(
-          color: primary.withValues(alpha: 0.12),
-          offset: Offset(0, 2.h),
-          blurRadius: 1,
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
-    ),
-  );
+  // ---------------------------------------------------------------------------
+  // SECTION CARD
+  // ---------------------------------------------------------------------------
 
-  Widget _label(String text) => Text(
-    text,
-    style: TextStyle(
-      fontSize: 15.sp,
-      color: dark,
-      fontWeight: FontWeight.w700,
-      fontFamily: 'HankenGrotesk',
-    ),
-  );
+  Widget _section({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(17.r),
+        border: Border.all(color: _border),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF173C45).withValues(alpha: 0.035),
+            blurRadius: 13,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 33.w,
+                height: 33.w,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF6F3),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Icon(icon, size: 17.sp, color: _teal),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'HankenGrotesk',
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w500,
+                        fontFamily: 'HankenGrotesk',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 15.h),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // LABELS AND INPUTS
+  // ---------------------------------------------------------------------------
+
+  Widget _label(String text, {bool optional = false}) {
+    return Row(
+      children: [
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11.5.sp,
+            color: _ink,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'HankenGrotesk',
+          ),
+        ),
+        if (optional) ...[
+          SizedBox(width: 5.w),
+          Text(
+            'OPTIONAL',
+            style: TextStyle(
+              color: _muted,
+              fontSize: 8.sp,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              fontFamily: 'HankenGrotesk',
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 
   Widget _input(
     TextEditingController textController, {
@@ -259,250 +382,552 @@ class PostborrowView extends GetView<PostborrowController> {
     TextInputType keyboardType = TextInputType.text,
     TextCapitalization capitalization = TextCapitalization.none,
     int? maxLength,
-  }) => TextField(
-    controller: textController,
-    keyboardType: keyboardType,
-    textCapitalization: capitalization,
-    maxLength: maxLength,
-    style: _fieldTextStyle(),
-    decoration: _decoration(
-      hint: hint,
-      icon: icon,
-      prefixText: prefixText,
-    ).copyWith(counterText: ''),
-  );
+  }) {
+    return TextField(
+      controller: textController,
+      keyboardType: keyboardType,
+      textCapitalization: capitalization,
+      maxLength: maxLength,
+      style: _fieldTextStyle(),
+      decoration: _decoration(
+        hint: hint,
+        icon: icon,
+        prefixText: prefixText,
+      ).copyWith(counterText: ''),
+    );
+  }
 
-  TextStyle _fieldTextStyle() => TextStyle(
-    color: dark,
-    fontSize: 15.sp,
-    fontWeight: FontWeight.w500,
-    fontFamily: 'HankenGrotesk',
-  );
+  TextStyle _fieldTextStyle() {
+    return TextStyle(
+      color: _ink,
+      fontSize: 13.sp,
+      fontWeight: FontWeight.w600,
+      fontFamily: 'HankenGrotesk',
+    );
+  }
+
+  TextStyle _buttonTextStyle() {
+    return TextStyle(
+      color: Colors.white,
+      fontSize: 14.sp,
+      fontWeight: FontWeight.w800,
+      fontFamily: 'HankenGrotesk',
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // SHARED INPUT DECORATION
+  // ---------------------------------------------------------------------------
 
   InputDecoration _decoration({
     required String hint,
     IconData? icon,
     String? prefixText,
-  }) => InputDecoration(
-    hintText: hint,
-    hintStyle: TextStyle(color: PostborrowView.hint, fontSize: 14.sp),
-    prefixIcon: icon == null
-        ? null
-        : Icon(
-            icon,
-            color: hint == '0.00' ? primary : PostborrowView.hint,
-            size: 20.sp,
-          ),
-    prefixIconConstraints: icon == null
-        ? null
-        : BoxConstraints(minWidth: 44.w, minHeight: 48.h),
-    prefixText: prefixText,
-    prefixStyle: TextStyle(
-      color: dark,
-      fontSize: 14.sp,
-      fontWeight: FontWeight.w600,
-    ),
-    isDense: true,
-    filled: true,
-    fillColor: fieldBackground,
-    contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8.r),
-      borderSide: const BorderSide(color: border),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8.r),
-      borderSide: const BorderSide(color: border),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8.r),
-      borderSide: const BorderSide(color: primary, width: 1),
-    ),
-  );
-
-  Widget _helper(String text) => Padding(
-    padding: EdgeInsets.only(left: 2.w, top: 6.h),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.info_outline, size: 14.sp, color: hint),
-        SizedBox(width: 6.w),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: const Color(0xFF7D8DA1),
-              fontSize: 12.sp,
-              height: 1.25,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _readOnlyField(String value) => Container(
-    width: double.infinity,
-    height: 50.h,
-    padding: EdgeInsets.symmetric(horizontal: 12.w),
-    decoration: BoxDecoration(
-      color: fieldBackground,
-      borderRadius: BorderRadius.circular(8.r),
-      border: Border.all(color: border),
-    ),
-    child: Row(
-      children: [
-        Icon(Icons.percent_rounded, color: hint, size: 20.sp),
-        SizedBox(width: 12.w),
-        Text(
-          value,
-          style: TextStyle(
-            color: dark,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _categorySelector() => Obx(() {
-    if (controller.isLoadingCategories.value) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (controller.categoryLoadError.value.isNotEmpty) {
-      return _selectorError(
-        controller.categoryLoadError.value,
-        controller.loadExpenseCategories,
-      );
-    }
-    if (controller.categories.isEmpty) {
-      return _selectorError(
-        'No active expense categories available.',
-        controller.loadExpenseCategories,
-      );
-    }
-    final selected = controller.selectedInterestCategoryUuid.value;
-    final selectedValue =
-        controller.categories.any(
-          (category) => controller.categoryUuid(category) == selected,
-        )
-        ? selected
-        : null;
-    return DropdownButtonFormField<String>(
-      initialValue: selectedValue,
-      isExpanded: true,
-      decoration: _decoration(
-        hint: 'Select an expense category',
-        icon: Icons.category_outlined,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(
+        color: _muted.withValues(alpha: 0.9),
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w500,
+        fontFamily: 'HankenGrotesk',
       ),
-      style: _fieldTextStyle(),
-      items: controller.categories
-          .map(
-            (category) => DropdownMenuItem<String>(
-              value: controller.categoryUuid(category),
-              child: Text(
-                controller.categoryName(category),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: (uuid) => controller.selectedInterestCategoryUuid.value = uuid,
+      prefixIcon: icon == null ? null : Icon(icon, color: _teal, size: 18.sp),
+      prefixIconConstraints: icon == null
+          ? null
+          : BoxConstraints(minWidth: 42.w, minHeight: 44.h),
+      prefixText: prefixText,
+      prefixStyle: TextStyle(
+        color: _ink,
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w700,
+        fontFamily: 'HankenGrotesk',
+      ),
+      isDense: true,
+      filled: true,
+      fillColor: _fieldBackground,
+      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11.r),
+        borderSide: const BorderSide(color: _border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11.r),
+        borderSide: const BorderSide(color: _border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11.r),
+        borderSide: const BorderSide(color: _teal, width: 1.2),
+      ),
     );
-  });
+  }
 
-  Widget _accountSelector() => Obx(() {
-    if (controller.isLoadingAccounts.value) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (controller.accountLoadError.value.isNotEmpty) {
-      return _selectorError(
-        controller.accountLoadError.value,
-        controller.loadReceivingAccounts,
-      );
-    }
-    if (controller.accounts.isEmpty) {
-      return _selectorError(
-        'No active accounts available.',
-        controller.loadReceivingAccounts,
-      );
-    }
-    final selected = controller.selectedReceivingAccountUuid.value;
-    final selectedValue =
-        controller.accounts.any(
-          (account) => controller.accountUuid(account) == selected,
-        )
-        ? selected
-        : null;
-    return DropdownButtonFormField<String>(
-      initialValue: selectedValue,
-      isExpanded: true,
-      decoration: _decoration(
-        hint: 'Select the receiving account',
-        icon: Icons.account_balance_wallet_outlined,
-      ),
-      style: _fieldTextStyle(),
-      items: controller.accounts
-          .map(
-            (account) => DropdownMenuItem<String>(
-              value: controller.accountUuid(account),
-              child: Text(
-                controller.accountName(account),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: (uuid) => controller.selectedReceivingAccountUuid.value = uuid,
-    );
-  });
+  // ---------------------------------------------------------------------------
+  // HELPER TEXT
+  // ---------------------------------------------------------------------------
 
-  Widget _selectorError(String message, VoidCallback retry) => Row(
-    children: [
-      Expanded(
-        child: Text(
-          message,
-          style: TextStyle(color: Colors.red.shade700, fontSize: 12.sp),
-        ),
-      ),
-      TextButton(onPressed: retry, child: const Text('Retry')),
-    ],
-  );
-
-  Widget _dateField(DateTime? date, VoidCallback onTap) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(8.r),
-    child: Container(
-      width: double.infinity,
-      height: 50.h,
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
-      decoration: BoxDecoration(
-        color: fieldBackground,
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: border),
-      ),
+  Widget _helper(String text) {
+    return Padding(
+      padding: EdgeInsets.only(left: 2.w, top: 5.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.calendar_month_outlined, color: hint, size: 20.sp),
-          SizedBox(width: 12.w),
+          Icon(Icons.info_outline_rounded, size: 12.sp, color: _muted),
+          SizedBox(width: 5.w),
           Expanded(
             child: Text(
-              date == null
-                  ? 'Select date'
-                  : '${date.day.toString().padLeft(2, '0')}/'
-                        '${date.month.toString().padLeft(2, '0')}/'
-                        '${date.year}',
+              text,
               style: TextStyle(
-                color: date == null ? hint : dark,
-                fontSize: 14.sp,
+                color: _muted,
+                fontSize: 10.sp,
+                height: 1.25,
+                fontFamily: 'HankenGrotesk',
                 fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          Icon(Icons.keyboard_arrow_down, color: hint, size: 20.sp),
         ],
       ),
-    ),
-  );
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // READ-ONLY FIELD
+  // ---------------------------------------------------------------------------
+
+  Widget _readOnlyField(String value, {required IconData icon}) {
+    return Container(
+      width: double.infinity,
+      height: 45.h,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: _fieldBackground,
+        borderRadius: BorderRadius.circular(11.r),
+        border: Border.all(color: _border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: _teal, size: 18.sp),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: _ink,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'HankenGrotesk',
+              ),
+            ),
+          ),
+          Icon(Icons.lock_outline_rounded, size: 14.sp, color: _muted),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // EXPENSE CATEGORY SELECTOR
+  // ---------------------------------------------------------------------------
+
+  Widget _categorySelector() {
+    return Obx(() {
+      Widget selector;
+
+      if (controller.isLoadingCategories.value) {
+        selector = _selectorLoading();
+      } else if (controller.categoryLoadError.value.isNotEmpty) {
+        selector = _selectorError(
+          controller.categoryLoadError.value,
+          controller.loadExpenseCategories,
+        );
+      } else if (controller.categories.isEmpty) {
+        selector = _emptyCategorySelector();
+      } else {
+        final selectedUuid = controller.selectedInterestCategoryUuid.value;
+
+        final selectedValue =
+            controller.categories.any(
+              (category) => controller.categoryUuid(category) == selectedUuid,
+            )
+            ? selectedUuid
+            : null;
+
+        selector = DropdownButtonFormField<String>(
+          initialValue: selectedValue,
+          isExpanded: true,
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: _muted,
+            size: 22.sp,
+          ),
+          decoration: _decoration(
+            hint: 'Select an expense category',
+            icon: Icons.category_outlined,
+          ),
+          style: _fieldTextStyle(),
+          items: controller.categories.map((category) {
+            return DropdownMenuItem<String>(
+              value: controller.categoryUuid(category),
+              child: Text(
+                controller.categoryName(category),
+                overflow: TextOverflow.ellipsis,
+                style: _fieldTextStyle(),
+              ),
+            );
+          }).toList(),
+          onChanged: (uuid) {
+            controller.selectedInterestCategoryUuid.value = uuid;
+          },
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [selector, _addExpenseCategoryButton()],
+      );
+    });
+  }
+
+  Widget _addExpenseCategoryButton() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton.icon(
+        onPressed: _openAddExpenseCategory,
+        icon: Icon(Icons.add_rounded, size: 17.sp),
+        label: const Text('Add new'),
+        style: TextButton.styleFrom(
+          foregroundColor: _teal,
+          padding: EdgeInsets.symmetric(horizontal: 6.w),
+          minimumSize: Size(0, 32.h),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: TextStyle(
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w800,
+            fontFamily: 'HankenGrotesk',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAddExpenseCategory() async {
+    final result = await Get.toNamed(Routes.ADD_EXPENSE_CATEGORY);
+
+    await controller.loadExpenseCategories();
+
+    if (result is! Map) return;
+
+    final category = Map<String, dynamic>.from(result);
+    final uuid = controller.categoryUuid(category);
+
+    if (uuid.isEmpty) return;
+
+    final existingIndex = controller.categories.indexWhere(
+      (item) => controller.categoryUuid(item) == uuid,
+    );
+
+    if (existingIndex >= 0) {
+      controller.categories[existingIndex] = category;
+    } else {
+      controller.categories.add(category);
+    }
+
+    controller.selectedInterestCategoryUuid.value = uuid;
+  }
+
+  // ---------------------------------------------------------------------------
+  // EMPTY EXPENSE CATEGORY
+  // ---------------------------------------------------------------------------
+
+  Widget _emptyCategorySelector() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 11.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF5F1),
+        borderRadius: BorderRadius.circular(11.r),
+        border: Border.all(color: const Color(0xFFF3DED5)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.category_outlined,
+            color: const Color(0xFFD47755),
+            size: 16.sp,
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              'No expense categories yet. Add one to continue.',
+              style: TextStyle(
+                color: _ink,
+                fontSize: 10.sp,
+                fontFamily: 'HankenGrotesk',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // RECEIVING ACCOUNT SELECTOR
+  // ---------------------------------------------------------------------------
+
+  Widget _accountSelector() {
+    return Obx(() {
+      if (controller.isLoadingAccounts.value) {
+        return _selectorLoading();
+      }
+
+      if (controller.accountLoadError.value.isNotEmpty) {
+        return _selectorError(
+          controller.accountLoadError.value,
+          controller.loadReceivingAccounts,
+        );
+      }
+
+      if (controller.accounts.isEmpty) {
+        return _emptySelector(
+          'No active accounts available.',
+          'Add account',
+          () async {
+            await Get.toNamed(Routes.bankAccounts);
+            await controller.loadReceivingAccounts();
+          },
+        );
+      }
+
+      final selectedUuid = controller.selectedReceivingAccountUuid.value;
+
+      final selectedValue =
+          controller.accounts.any(
+            (account) => controller.accountUuid(account) == selectedUuid,
+          )
+          ? selectedUuid
+          : null;
+
+      return DropdownButtonFormField<String>(
+        initialValue: selectedValue,
+        isExpanded: true,
+        icon: Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: _muted,
+          size: 22.sp,
+        ),
+        decoration: _decoration(
+          hint: 'Select the receiving account',
+          icon: Icons.account_balance_wallet_outlined,
+        ),
+        style: _fieldTextStyle(),
+        items: controller.accounts
+            .map(
+              (account) => DropdownMenuItem<String>(
+                value: controller.accountUuid(account),
+                child: Text(
+                  controller.accountName(account),
+                  overflow: TextOverflow.ellipsis,
+                  style: _fieldTextStyle(),
+                ),
+              ),
+            )
+            .toList(),
+        onChanged: (uuid) =>
+            controller.selectedReceivingAccountUuid.value = uuid,
+      );
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // SELECTOR STATES
+  // ---------------------------------------------------------------------------
+
+  Widget _selectorLoading() {
+    return Container(
+      height: 45.h,
+      alignment: Alignment.centerLeft,
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      decoration: BoxDecoration(
+        color: _fieldBackground,
+        borderRadius: BorderRadius.circular(11.r),
+        border: Border.all(color: _border),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 15.w,
+            height: 15.w,
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: _teal,
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Text(
+            'Loading...',
+            style: TextStyle(
+              color: _muted,
+              fontSize: 11.sp,
+              fontFamily: 'HankenGrotesk',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _selectorError(String message, Future<void> Function() onRetry) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 9.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF5F1),
+        borderRadius: BorderRadius.circular(11.r),
+        border: Border.all(color: const Color(0xFFF3DED5)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: const Color(0xFFD47755),
+            size: 16.sp,
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: _ink,
+                fontSize: 10.sp,
+                fontFamily: 'HankenGrotesk',
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(
+              foregroundColor: _teal,
+              padding: EdgeInsets.symmetric(horizontal: 7.w),
+              minimumSize: Size(0, 30.h),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'Retry',
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w800,
+                fontFamily: 'HankenGrotesk',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptySelector(
+    String message,
+    String actionLabel,
+    VoidCallback onAction,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 9.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF5F1),
+        borderRadius: BorderRadius.circular(11.r),
+        border: Border.all(color: const Color(0xFFF3DED5)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: const Color(0xFFD47755),
+            size: 16.sp,
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: _ink,
+                fontSize: 10.sp,
+                fontFamily: 'HankenGrotesk',
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onAction,
+            style: TextButton.styleFrom(
+              foregroundColor: _teal,
+              padding: EdgeInsets.symmetric(horizontal: 7.w),
+              minimumSize: Size(0, 30.h),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              actionLabel,
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w800,
+                fontFamily: 'HankenGrotesk',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // DATE PICKER FIELD
+  // ---------------------------------------------------------------------------
+
+  Widget _dateField({required DateTime? date, required VoidCallback onTap}) {
+    final displayDate = date == null
+        ? 'Select date'
+        : '${date.month.toString().padLeft(2, '0')}/'
+              '${date.day.toString().padLeft(2, '0')}/'
+              '${date.year}';
+
+    return Material(
+      color: _fieldBackground,
+      borderRadius: BorderRadius.circular(11.r),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(11.r),
+        child: Container(
+          height: 45.h,
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(11.r),
+            border: Border.all(color: _border),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.calendar_month_outlined, color: _teal, size: 18.sp),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  displayDate,
+                  style: TextStyle(
+                    color: date == null ? _muted : _ink,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'HankenGrotesk',
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: _muted,
+                size: 21.sp,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

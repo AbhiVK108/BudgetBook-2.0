@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:budget_book_2026/app/core/constants/api_endpoints.dart';
 import 'package:budget_book_2026/app/core/services/api_services.dart';
+import 'package:budget_book_2026/app/core/services/income_category_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -11,12 +12,15 @@ class PostLendController extends GetxController {
     : apiService = apiService ?? ApiService();
 
   final ApiService apiService;
+  late final IncomeCategoryService _incomeCategoryService =
+      IncomeCategoryService(apiService: apiService);
 
   final String url = ApiEndpoints.legacyDebitUrl;
   final categories = <Map<String, dynamic>>[].obs;
   final accounts = <Map<String, dynamic>>[].obs;
   final isLoadingCategories = false.obs;
   final isLoadingAccounts = false.obs;
+  final isCreatingCategory = false.obs;
   final categoryLoadError = ''.obs;
   final accountLoadError = ''.obs;
   final selectedInterestCategoryUuid = RxnString();
@@ -93,6 +97,7 @@ class PostLendController extends GetxController {
           _responseMessage(decoded, 'Unable to load income categories.'),
         );
       }
+
       final dataValue = decoded['data'];
       final List<dynamic>? items = dataValue is List
           ? dataValue
@@ -131,6 +136,33 @@ class PostLendController extends GetxController {
       debugPrint('LENDING CATEGORY LOAD ERROR: $error');
     } finally {
       isLoadingCategories.value = false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> createIncomeCategory({
+    required String name,
+    required String icon,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty || isCreatingCategory.value) return null;
+
+    try {
+      isCreatingCategory.value = true;
+      final category = await _incomeCategoryService.create(
+        name: trimmedName,
+        icon: icon,
+      );
+      final uuid = categoryUuid(category);
+      if (uuid.isEmpty) return null;
+
+      categories.add(category);
+      selectedInterestCategoryUuid.value = uuid;
+      return category;
+    } catch (error) {
+      debugPrint('LENDING CATEGORY CREATE ERROR: $error');
+      return null;
+    } finally {
+      isCreatingCategory.value = false;
     }
   }
 
@@ -442,14 +474,16 @@ class PostLendController extends GetxController {
         _pendingLendingIdempotencyKey = null;
         _pendingLendingRequestBody = null;
 
-        Get.back(result: true);
-        _showMessage(
-          'Success',
-          decoded['message']?.toString() ??
-              (isEditMode.value
-                  ? 'Lending details updated.'
-                  : 'Lending details saved.'),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Get.back(result: true);
+          _showMessage(
+            'Success',
+            decoded['message']?.toString() ??
+                (isEditMode.value
+                    ? 'Lending details updated.'
+                    : 'Lending details saved.'),
+          );
+        });
       } else {
         final dynamic errors = decoded['errors'];
         final List<String> details = [];

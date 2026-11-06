@@ -121,8 +121,14 @@ class PostchitfundController extends GetxController {
               (status == null || status == 'active' || status == '1');
         }),
       );
-      if (accounts.length == 1) {
+      final selected = selectedContributionAccountUuid.value?.trim() ?? '';
+      final selectedIsAvailable = accounts.any(
+        (account) => accountUuid(account) == selected,
+      );
+      if (!selectedIsAvailable && accounts.isNotEmpty) {
         selectedContributionAccountUuid.value = accountUuid(accounts.first);
+      } else if (!selectedIsAvailable) {
+        selectedContributionAccountUuid.value = null;
       }
     } catch (error) {
       accountLoadError.value = error is FormatException
@@ -203,9 +209,11 @@ class PostchitfundController extends GetxController {
       return;
     }
 
-    final chitValue = double.tryParse(chitValueController.text.trim());
+    final chitValue = double.tryParse(
+      chitValueController.text.replaceAll(',', '').trim(),
+    );
     final installmentAmount = double.tryParse(
-      installmentAmountController.text.trim(),
+      installmentAmountController.text.replaceAll(',', '').trim(),
     );
     final installmentCount = int.tryParse(
       installmentCountController.text.trim(),
@@ -214,7 +222,8 @@ class PostchitfundController extends GetxController {
         !chitValue.isFinite ||
         installmentAmount == null ||
         !installmentAmount.isFinite ||
-        installmentCount == null) {
+        installmentCount == null ||
+        installmentCount <= 0) {
       _showMessage('Invalid amount', 'Please enter valid chit amounts.');
       return;
     }
@@ -265,7 +274,14 @@ class PostchitfundController extends GetxController {
         editingUuid = '';
         _pendingIdempotencyKey = null;
         _pendingRequestBody = null;
-        if (Get.key.currentState?.canPop() ?? false) Get.back(result: true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final context = Get.context;
+          if (context == null) return;
+          final navigator = Navigator.maybeOf(context, rootNavigator: false);
+          if (navigator != null && navigator.canPop()) {
+            navigator.pop(true);
+          }
+        });
         return;
       }
 

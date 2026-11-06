@@ -80,13 +80,13 @@ class _CreditCardsViewState extends State<CreditCardsView>
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Export credit-card report as PDF',
-            onPressed: controller.isReportLoading.value
-                ? null
-                : controller.exportCreditCardsReportPdf,
-            icon: const Icon(Icons.picture_as_pdf_rounded),
-          ),
+          // IconButton(
+          //   tooltip: 'Export credit-card report as PDF',
+          //   onPressed: controller.isReportLoading.value
+          //       ? null
+          //       : controller.exportCreditCardsReportPdf,
+          //   icon: const Icon(Icons.picture_as_pdf_rounded),
+          // ),
           Obx(
             () => IconButton(
               tooltip: 'Refresh credit cards',
@@ -105,7 +105,13 @@ class _CreditCardsViewState extends State<CreditCardsView>
         elevation: 5,
         onPressed: _openAddCard,
         icon: const Icon(Icons.add_rounded),
-        label: Text('Add card', style: _bodyStyle(fontWeight: FontWeight.w700)),
+        label: Text(
+          'Add card',
+          style: _bodyStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColors.cardBgWhite,
+          ),
+        ),
       ),
       body: Obx(() {
         if (controller.isLoading.value && controller.cards.isEmpty) {

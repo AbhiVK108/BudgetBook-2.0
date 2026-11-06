@@ -24,6 +24,7 @@ class IncomeExpenseController extends GetxController {
   final count = 0.obs;
   final incomeList = <Map<String, dynamic>>[].obs;
   final isLoading = false.obs;
+  final isDeleting = false.obs;
   final isReversing = false.obs;
   final isReportLoading = false.obs;
   final incomeReport = <String, dynamic>{}.obs;
@@ -803,81 +804,97 @@ class IncomeExpenseController extends GetxController {
 
   // ================= DELETE INCOME =================
 
-  Future<void> deleteIncome(String id) async {
+  Future<void> deleteIncome(String incomeUuid) async {
+    final uuid = incomeUuid.trim();
+    if (uuid.isEmpty || isDeleting.value) return;
+
+    isDeleting.value = true;
     try {
-      isLoading.value = true;
+      final response = await apiService.deleteIncome(uuid);
+      final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+      final payload = decoded is Map
+          ? Map<String, dynamic>.from(decoded)
+          : <String, dynamic>{};
+      final isSuccess =
+          response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          payload['success'] != false;
 
-      final response = await apiService.delete('$baseUrl/$id');
-
-      debugPrint('DELETE INCOME STATUS: ${response.statusCode}');
-      debugPrint('DELETE INCOME RESPONSE: ${response.body}');
-
-      dynamic data = <String, dynamic>{};
-
-      if (response.body.isNotEmpty) {
-        data = jsonDecode(response.body);
-      }
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (isSuccess) {
         Get.snackbar(
-          'Success',
-          data is Map && data['message'] != null
-              ? data['message'].toString()
+          'Income deleted',
+          payload['message']?.toString().isNotEmpty == true
+              ? payload['message'].toString()
               : 'Income deleted successfully.',
           snackPosition: SnackPosition.BOTTOM,
         );
-
-        incomeList.removeWhere((item) => item['id']?.toString() == id);
-
+        incomeList.removeWhere(
+          (item) => item['uuid']?.toString().trim() == uuid,
+        );
         await getIncome();
-      } else if (response.statusCode == 401) {
-        // Get.snackbar(
-        //   'Session Expired',
-        //   'Please login again.',
-        //   snackPosition: SnackPosition.BOTTOM,
-        // );
+        return;
+      }
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        Get.snackbar(
+          'Session error',
+          'Please sign in again to delete this income.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
       } else {
         Get.snackbar(
-          'Error',
-          data is Map && data['message'] != null
-              ? data['message'].toString()
+          'Unable to delete income',
+          payload['message']?.toString().isNotEmpty == true
+              ? payload['message'].toString()
               : 'Unable to delete income.',
           snackPosition: SnackPosition.BOTTOM,
         );
       }
-    } catch (e) {
-      debugPrint('DELETE INCOME ERROR: $e');
-
+    } on FormatException {
       Get.snackbar(
-        'Error',
-        'Something went wrong while deleting income.',
+        'Unable to delete income',
+        'The server returned an invalid response.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('DELETE INCOME ERROR: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      Get.snackbar(
+        'Unable to delete income',
+        'Unable to connect to the server. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
       );
     } finally {
-      isLoading.value = false;
+      isDeleting.value = false;
     }
   }
 
   // ================= DELETE CONFIRMATION =================
 
-  void confirmDeleteIncome(String id) {
-    Get.dialog(
+  Future<void> confirmDeleteIncome(String incomeUuid) async {
+    final uuid = incomeUuid.trim();
+    if (uuid.isEmpty || isDeleting.value) return;
+
+    final shouldDelete = await Get.dialog<bool>(
       AlertDialog(
         title: const Text('Delete Income'),
-        content: const Text('Are you sure you want to delete this income?'),
+        content: const Text(
+          'This permanently deletes the income transaction and cannot be undone.',
+        ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Get.back();
-              await deleteIncome(id);
-            },
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            onPressed: () => Get.back(result: true),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+
+    if (shouldDelete == true) {
+      await deleteIncome(uuid);
+    }
   }
 
   // ================= REFRESH =================

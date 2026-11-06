@@ -1,6 +1,7 @@
 import 'package:budget_book_2026/app/core/theme/app_colors.dart';
 import 'package:budget_book_2026/app/modules/home/widgets/home_widget.dart';
 import 'package:budget_book_2026/app/modules/income_expense/controllers/post_income_controller.dart';
+import 'package:budget_book_2026/app/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -30,7 +31,7 @@ class PostIncomeView extends GetView<PostIncomeController> {
           children: [
             Text('INCOME', style: _eyebrowStyle()),
             Text(
-              'Add income',
+              controller.isEditingIncome.value ? 'Update income' : 'Add income',
               style: TextStyle(
                 fontFamily: 'HankenGrotesk',
                 fontSize: 19.sp,
@@ -43,7 +44,7 @@ class PostIncomeView extends GetView<PostIncomeController> {
         actions: [
           IconButton(
             tooltip: 'Add income category',
-            onPressed: _showAddCategoryDialog,
+            onPressed: _openAddIncomeCategory,
             icon: Icon(
               Icons.add_circle_outline_rounded,
               color: AppColors.primaryTeal,
@@ -71,7 +72,7 @@ class PostIncomeView extends GetView<PostIncomeController> {
                         'Income category',
                         'Choose where this money comes from',
                         trailing: TextButton.icon(
-                          onPressed: _showAddCategoryDialog,
+                          onPressed: _openAddIncomeCategory,
                           icon: Icon(Icons.add_rounded, size: 17.sp),
                           label: const Text('Add new'),
                           style: TextButton.styleFrom(
@@ -233,7 +234,7 @@ class PostIncomeView extends GetView<PostIncomeController> {
               ),
             ),
             TextButton(
-              onPressed: _showAddCategoryDialog,
+              onPressed: _openAddIncomeCategory,
               child: const Text('Add'),
             ),
           ],
@@ -613,10 +614,17 @@ class PostIncomeView extends GetView<PostIncomeController> {
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_rounded, size: 20.sp),
+                      Icon(
+                        controller.isEditingIncome.value
+                            ? Icons.check_rounded
+                            : Icons.add_rounded,
+                        size: 20.sp,
+                      ),
                       SizedBox(width: 7.w),
                       Text(
-                        'Save income',
+                        controller.isEditingIncome.value
+                            ? 'Update income'
+                            : 'Save income',
                         style: TextStyle(
                           fontFamily: 'HankenGrotesk',
                           fontSize: 14.sp,
@@ -736,219 +744,24 @@ class PostIncomeView extends GetView<PostIncomeController> {
     }
   }
 
-  Future<void> _showAddCategoryDialog() async {
-    final nameController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    var selectedIcon = 'salary';
+  Future<void> _openAddIncomeCategory() async {
+    final result = await Get.toNamed(Routes.ADD_INCOME_CATEGORY);
+    if (result is! Map) return;
 
-    try {
-      await Get.dialog<void>(
-        StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18.r),
-              side: BorderSide(color: HomeStyle.border),
-            ),
-            titlePadding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 5.h),
-            contentPadding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 8.h),
-            actionsPadding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 14.h),
-            title: Text(
-              'Add income category',
-              style: TextStyle(
-                fontFamily: 'HankenGrotesk',
-                fontSize: 17.sp,
-                fontWeight: FontWeight.w700,
-                color: HomeStyle.ink,
-              ),
-            ),
-            content: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameController,
-                    autofocus: true,
-                    textCapitalization: TextCapitalization.words,
-                    style: TextStyle(
-                      fontFamily: 'HankenGrotesk',
-                      fontSize: 13.sp,
-                      color: HomeStyle.ink,
-                    ),
-                    decoration: _dialogInputDecoration(
-                      label: 'Category name',
-                      hint: 'e.g. Freelance',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Enter a category name';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 13.h),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedIcon,
-                    style: TextStyle(
-                      fontFamily: 'HankenGrotesk',
-                      fontSize: 13.sp,
-                      color: HomeStyle.ink,
-                    ),
-                    decoration: _dialogInputDecoration(label: 'Category icon'),
-                    items: const [
-                      DropdownMenuItem(value: 'salary', child: Text('Salary')),
-                      DropdownMenuItem(value: 'work', child: Text('Work')),
-                      DropdownMenuItem(value: 'gift', child: Text('Gift')),
-                      DropdownMenuItem(
-                        value: 'investment',
-                        child: Text('Investment'),
-                      ),
-                      DropdownMenuItem(value: 'rent', child: Text('Rent')),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => selectedIcon = value);
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                style: TextButton.styleFrom(
-                  foregroundColor: HomeStyle.muted,
-                  textStyle: TextStyle(
-                    fontFamily: 'HankenGrotesk',
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                child: const Text('Cancel'),
-              ),
-              Obx(
-                () => ElevatedButton(
-                  onPressed: controller.isCreatingCategory.value
-                      ? null
-                      : () async {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          if (!(formKey.currentState?.validate() ?? false)) {
-                            return;
-                          }
+    final category = Map<String, dynamic>.from(result);
+    final uuid =
+        (category['uuid'] ?? category['category_uuid'])?.toString() ?? '';
+    if (uuid.isEmpty) return;
 
-                          final category = await controller
-                              .createIncomeCategory(
-                                name: nameController.text.trim(),
-                                icon: selectedIcon,
-                              );
-
-                          if (category == null) {
-                            Get.snackbar(
-                              'Unable to create category',
-                              'Please check your connection and try again.',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: HomeStyle.ink,
-                              colorText: Colors.white,
-                              margin: EdgeInsets.all(12.w),
-                              borderRadius: 12.r,
-                            );
-                            return;
-                          }
-
-                          if (Get.isDialogOpen ?? false) {
-                            Get.back();
-                          }
-                          Get.snackbar(
-                            'Category added',
-                            category['name']?.toString() ??
-                                'Income category created successfully.',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: AppColors.primaryTeal,
-                            colorText: Colors.white,
-                            margin: EdgeInsets.all(12.w),
-                            borderRadius: 12.r,
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    backgroundColor: AppColors.primaryTeal,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 17.w,
-                      vertical: 10.h,
-                    ),
-                  ),
-                  child: controller.isCreatingCategory.value
-                      ? SizedBox(
-                          width: 17.w,
-                          height: 17.w,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          'Create category',
-                          style: TextStyle(
-                            fontFamily: 'HankenGrotesk',
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        barrierDismissible: false,
-      );
-    } finally {
-      nameController.dispose();
-    }
-  }
-
-  InputDecoration _dialogInputDecoration({
-    required String label,
-    String? hint,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      labelStyle: TextStyle(
-        fontFamily: 'HankenGrotesk',
-        fontSize: 12.sp,
-        color: HomeStyle.muted,
-      ),
-      hintStyle: TextStyle(
-        fontFamily: 'HankenGrotesk',
-        fontSize: 12.sp,
-        color: HomeStyle.muted.withOpacity(.75),
-      ),
-      filled: true,
-      fillColor: const Color(0xFFFAFCFB),
-      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 13.h),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(11.r),
-        borderSide: BorderSide(color: HomeStyle.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(11.r),
-        borderSide: BorderSide(color: AppColors.primaryTeal, width: 1.2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(11.r),
-        borderSide: const BorderSide(color: Colors.redAccent),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(11.r),
-        borderSide: const BorderSide(color: Colors.redAccent),
-      ),
+    final existingIndex = controller.categories.indexWhere(
+      (item) => (item['uuid'] ?? item['category_uuid'])?.toString() == uuid,
     );
+    if (existingIndex >= 0) {
+      controller.categories[existingIndex] = category;
+      controller.selectCategory(existingIndex);
+    } else {
+      controller.categories.add(category);
+      controller.selectCategory(controller.categories.length - 1);
+    }
   }
 }

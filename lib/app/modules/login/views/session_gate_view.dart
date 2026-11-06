@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import 'dart:async';
+
 class SessionGateView extends StatefulWidget {
   const SessionGateView({super.key});
 
@@ -21,7 +23,9 @@ class _SessionGateViewState extends State<SessionGateView> {
   Future<void> _restoreSession() async {
     var hasSession = false;
     try {
-      hasSession = await ApiService().restoreSession();
+      hasSession = await ApiService().restoreSession().timeout(
+        const Duration(seconds: 30),
+      );
     } catch (_) {
       hasSession = false;
     }

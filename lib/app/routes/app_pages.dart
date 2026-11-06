@@ -34,6 +34,10 @@ import '../modules/income_expense/views/income_expense_view.dart';
 import '../modules/income_expense/views/indiv_post_income_view.dart';
 import '../modules/income_expense/views/post_expense_view.dart';
 import '../modules/income_expense/views/post_income_view.dart';
+import '../modules/income_category/bindings/add_income_category_binding.dart';
+import '../modules/income_category/views/add_income_category_view.dart';
+import '../modules/expense_category/bindings/add_expense_category_binding.dart';
+import '../modules/expense_category/views/add_expense_category_view.dart';
 import '../modules/lend_and_borrow/bindings/borrow_binding.dart';
 import '../modules/lend_and_borrow/bindings/lend_binding.dart';
 import '../modules/lend_and_borrow/views/borrow_view.dart';
@@ -111,6 +115,16 @@ class AppPages {
       name: _Paths.PostIncomeView,
       page: () => const PostIncomeView(),
       binding: PostIncomeBinding(),
+    ),
+    GetPage(
+      name: _Paths.ADD_INCOME_CATEGORY,
+      page: () => const AddIncomeCategoryView(),
+      binding: AddIncomeCategoryBinding(),
+    ),
+    GetPage(
+      name: _Paths.ADD_EXPENSE_CATEGORY,
+      page: () => const AddExpenseCategoryView(),
+      binding: AddExpenseCategoryBinding(),
     ),
     GetPage(
       name: _Paths.PostExpenseView,
